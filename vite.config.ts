@@ -48,6 +48,13 @@ export default defineConfig({
           functions: 60,
           branches: 60,
         },
+        // Sprint 6 — Helper de notificaciones en tiempo real.
+        'src/lib/notificaciones.ts': {
+          lines: 60,
+          statements: 60,
+          functions: 60,
+          branches: 60,
+        },
       },
     },
   },

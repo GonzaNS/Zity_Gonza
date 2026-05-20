@@ -11,6 +11,7 @@ import CardConfirmacion from '../components/residente/solicitudes/CardConfirmaci
 import { labelCategoria, labelTipo } from '../lib/solicitudes'
 import { tiempoTranscurrido } from '../lib/format'
 import zityLogo from '../assets/zity_logo.png'
+import CampanaNotificaciones from '../components/shared/CampanaNotificaciones'
 import type { EstadoSolicitud, Solicitud } from '../types/database'
 
 const ESTADO_BADGE: Record<EstadoSolicitud, string> = {
@@ -80,6 +81,8 @@ export default function ResidenteDashboard() {
             </span>
           </div>
           <div className="flex items-center gap-4">
+            <CampanaNotificaciones />
+            
             {/* Sprint 5 · PBI-S2-E03 — link a perfil propio */}
             <Link
               to="/perfil"

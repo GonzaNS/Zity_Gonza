@@ -22,6 +22,7 @@ const AdminAuditoria = lazy(() => import('./pages/admin/Auditoria'))
 const ResidenteDashboard = lazy(() => import('./pages/ResidenteDashboard'))
 const TecnicoDashboard = lazy(() => import('./pages/TecnicoDashboard'))
 const Perfil = lazy(() => import('./pages/Perfil'))
+const Notificaciones = lazy(() => import('./pages/Notificaciones'))
 
 function RootRedirect() {
   const { user, profile, loading, isRecovery } = useAuth()
@@ -99,6 +100,11 @@ export default function App() {
             <Route path="/perfil" element={
               <ProtectedRoute allowedRoles={['residente', 'tecnico', 'admin']}>
                 <Perfil />
+              </ProtectedRoute>
+            } />
+            <Route path="/notificaciones" element={
+              <ProtectedRoute allowedRoles={['residente', 'tecnico', 'admin']}>
+                <Notificaciones />
               </ProtectedRoute>
             } />
 

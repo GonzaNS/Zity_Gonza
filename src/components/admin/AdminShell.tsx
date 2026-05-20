@@ -3,6 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { iniciales } from '../../lib/format'
 import zityLogo from '../../assets/zity_logo.png'
+import CampanaNotificaciones from '../shared/CampanaNotificaciones'
 
 type Props = {
   children: React.ReactNode
@@ -113,16 +114,19 @@ export default function AdminShell({ children, title, subtitle, actions }: Props
         </nav>
 
         <div className="border-t border-warm-200 p-4">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-full bg-linear-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white font-semibold text-sm shrink-0">
-              {iniciales(profile?.nombre, profile?.apellido, 'AD')}
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-linear-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white font-semibold text-sm shrink-0">
+                {iniciales(profile?.nombre, profile?.apellido, 'AD')}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-primary-900 truncate">
+                  {profile?.nombre} {profile?.apellido}
+                </p>
+                <p className="text-xs text-warm-400 truncate">{profile?.email}</p>
+              </div>
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-primary-900 truncate">
-                {profile?.nombre} {profile?.apellido}
-              </p>
-              <p className="text-xs text-warm-400 truncate">{profile?.email}</p>
-            </div>
+            <CampanaNotificaciones />
           </div>
           <button
             onClick={handleSignOut}
@@ -142,7 +146,9 @@ export default function AdminShell({ children, title, subtitle, actions }: Props
               Admin
             </span>
           </div>
-          <button
+          <div className="flex items-center gap-1">
+            <CampanaNotificaciones />
+            <button
             onClick={() => setDrawerAbierto(true)}
             aria-label="Abrir menú"
             className="min-w-11 min-h-11 -mr-2 flex items-center justify-center text-primary-700 hover:bg-warm-50 rounded-md cursor-pointer"
@@ -151,6 +157,7 @@ export default function AdminShell({ children, title, subtitle, actions }: Props
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
+          </div>
         </div>
       </header>
 

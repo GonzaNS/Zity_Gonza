@@ -13,7 +13,9 @@ import {
   NOTA_RESUELTA_MAX,
   NOTA_EN_PROGRESO_MAX,
 } from '../../../hooks/useActualizarEstadoTecnico'
+import { subirFotoCierre, serializarNotaCierre } from '../../../hooks/useSolicitudesTecnico'
 import { useAuth } from '../../../contexts/AuthContext'
+import UploadFoto from '../../residente/UploadFoto'
 import type { EstadoSolicitud } from '../../../types/database'
 
 // HU-MANT-04 SPRINT-4 — Etiquetas legibles para cada estado
@@ -29,6 +31,7 @@ const LABEL_ESTADO_DESTINO: Partial<Record<EstadoSolicitud, string>> = {
 
 type Props = {
   solicitudId: string
+  residenteId?: string
   estadoActual: EstadoSolicitud
   onEstadoActualizado: () => void
 }
@@ -43,6 +46,7 @@ export default function SeccionActualizarEstado({
   const estadoDestino = estadoDestinoValido(estadoActual)
 
   const [nota, setNota] = useState('')
+  const [fotoFile, setFotoFile] = useState<File | null>(null)
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [exito, setExito] = useState(false)
@@ -64,26 +68,37 @@ export default function SeccionActualizarEstado({
     setError(null)
     setExito(false)
 
-    // HU-MANT-04 SPRINT-4 — Llamada al hook de actualización
-    const resultado = await actualizarEstadoTecnico({
-      solicitudId,
-      estadoAnterior: estadoActual,
-      estadoNuevo: estadoDestino,
-      nota,
-      tecnicoId: user.id,
-    })
+    try {
+      let finalNota = nota
 
-    setGuardando(false)
+      if (estadoDestino === 'resuelta' && fotoFile) {
+        // En lugar de residenteId, usamos user.id para cumplir con la RLS de Supabase Storage
+        const filePath = await subirFotoCierre(fotoFile, user.id, solicitudId)
+        finalNota = serializarNotaCierre(nota, filePath)
+      }
 
-    if (!resultado.ok) {
-      // HU-MANT-04 SPRINT-4 — Error claro + nota preservada para reintento
-      setError(resultado.error ?? 'Error al actualizar el estado.')
-      return
+      const resultado = await actualizarEstadoTecnico({
+        solicitudId,
+        estadoAnterior: estadoActual,
+        estadoNuevo: estadoDestino,
+        nota: finalNota,
+        tecnicoId: user.id,
+      })
+
+      if (!resultado.ok) {
+        setError(resultado.error ?? 'Error al actualizar el estado.')
+        return
+      }
+
+      setExito(true)
+      setNota('')
+      setFotoFile(null)
+      onEstadoActualizado()
+    } catch (err) {
+      setError((err as Error).message || 'Error al subir la foto o actualizar el estado.')
+    } finally {
+      setGuardando(false)
     }
-
-    setExito(true)
-    setNota('')
-    onEstadoActualizado()
   }
 
   // Sin transición disponible (ya resuelta)
@@ -121,11 +136,10 @@ export default function SeccionActualizarEstado({
         <svg className="w-4 h-4 text-warm-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
         </svg>
-        <span className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${
-          estadoDestino === 'resuelta'
+        <span className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${estadoDestino === 'resuelta'
             ? 'bg-success/10 text-success'
             : 'bg-primary-100 text-primary-700'
-        }`}>
+          }`}>
           {LABEL_ESTADO_DESTINO[estadoDestino]}
         </span>
       </div>
@@ -166,6 +180,18 @@ export default function SeccionActualizarEstado({
           </p>
         </div>
       </div>
+
+      {/* Upload Foto (Opcional) */}
+      {estadoDestino === 'resuelta' && (
+        <div className="mt-4">
+          <p className="text-sm font-medium text-primary-900 mb-2">Foto de cierre (Opcional)</p>
+          <UploadFoto
+            archivo={fotoFile}
+            onCambio={setFotoFile}
+            disabled={guardando}
+          />
+        </div>
+      )}
 
       {/* Mensaje de error */}
       {error && (

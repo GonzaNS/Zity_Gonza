@@ -246,5 +246,46 @@ export async function cambiarEstadoSolicitud(
     usuarioId,
   )
 
+  // 4) Notificaciones PBI-12 — Simulación frontend del trigger after_solicitud_estado_changed
+  // Consultamos el residente asociado a esta solicitud
+  const { data: solData } = await supabase
+    .from('solicitudes')
+    .select('residente_id, codigo')
+    .eq('id', solicitudId)
+    .single()
+
+  if (solData?.residente_id) {
+    const titulos: Record<string, string> = {
+      asignada: 'Solicitud asignada a técnico',
+      en_progreso: 'Solicitud en progreso',
+      resuelta: 'Solución reportada por técnico',
+      cerrada: 'Solicitud cerrada',
+    }
+    
+    if (titulos[estadoNuevo]) {
+      await supabase.from('notificaciones').insert({
+        usuario_id: solData.residente_id,
+        solicitud_id: solicitudId,
+        tipo: 'estado_cambio',
+        titulo: titulos[estadoNuevo],
+        mensaje: `Tu solicitud ${solData.codigo || ''} ha cambiado su estado a: ${estadoNuevo.replace('_', ' ')}.`,
+        leida: false
+      })
+
+      // PBI-12 — Invocar Edge Function de email en modo fire-and-forget
+      if (supabase.functions) {
+        void supabase.functions.invoke('notificar-cambio-estado', {
+          body: {
+            solicitud_id: solicitudId,
+            estado_nuevo: estadoNuevo,
+            cambiado_por: usuarioId,
+          },
+        }).catch(err => {
+          console.warn('[PBI-12] Error al disparar Edge Function de email:', err)
+        })
+      }
+    }
+  }
+
   return { ok: true }
 }

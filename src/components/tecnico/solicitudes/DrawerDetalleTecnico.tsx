@@ -17,11 +17,10 @@ import type { SolicitudAsignadaTecnico } from '../../../hooks/useSolicitudesTecn
 function BadgePrioridad({ prioridad }: { prioridad: string }) {
   const esUrgente = prioridad === 'urgente'
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
-      esUrgente
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${esUrgente
         ? 'bg-error/10 text-error border border-error/20'
         : 'bg-primary-50 text-primary-600 border border-primary-200'
-    }`}>
+      }`}>
       {esUrgente ? 'Urgente' : 'Normal'}
     </span>
   )
@@ -65,8 +64,8 @@ export default function DrawerDetalleTecnico({ solicitud, fotoUrl, onCerrar, onE
     solicitud.piso && solicitud.departamento
       ? `Piso ${solicitud.piso} — ${solicitud.departamento}`
       : solicitud.residente?.piso && solicitud.residente?.departamento
-      ? `Piso ${solicitud.residente.piso} — ${solicitud.residente.departamento}`
-      : '—'
+        ? `Piso ${solicitud.residente.piso} — ${solicitud.residente.departamento}`
+        : '—'
 
   return (
     <div
@@ -195,6 +194,7 @@ export default function DrawerDetalleTecnico({ solicitud, fotoUrl, onCerrar, onE
           {/* HU-MANT-04 SPRINT-4 — Sección de transición de estado para el técnico */}
           <SeccionActualizarEstado
             solicitudId={solicitud.id}
+            residenteId={solicitud.residente_id}
             estadoActual={solicitud.estado}
             onEstadoActualizado={onEstadoActualizado}
           />
@@ -209,6 +209,7 @@ export default function DrawerDetalleTecnico({ solicitud, fotoUrl, onCerrar, onE
               solicitudId={solicitud.id}
               rolObservador="tecnico"
               userId={user?.id ?? ''}
+              fotoOriginalUrl={fotoUrl}
             />
           </div>
         </div>

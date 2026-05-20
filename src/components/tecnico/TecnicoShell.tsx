@@ -5,6 +5,7 @@
 import { useAuth } from '../../contexts/AuthContext'
 import { useNavigate, Link } from 'react-router-dom'
 import zityLogo from '../../assets/zity_logo.png'
+import CampanaNotificaciones from '../shared/CampanaNotificaciones'
 
 type Props = {
   title: string
@@ -34,6 +35,7 @@ export default function TecnicoShell({ title, subtitle, children }: Props) {
             </span>
           </div>
           <div className="flex items-center gap-3 min-w-0">
+            <CampanaNotificaciones />
             {/* Sprint 5 · PBI-S2-E03 — link a perfil propio */}
             <Link
               to="/perfil"
