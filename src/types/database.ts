@@ -4,7 +4,7 @@ export type EstadoInvitacion = 'pendiente' | 'aceptada' | 'expirada'
 export type EstadoSolicitud = 'pendiente' | 'asignada' | 'en_progreso' | 'resuelta' | 'cerrada'
 export type TipoSolicitud = 'mantenimiento' | 'reparacion' | 'queja' | 'sugerencia' | 'otro'
 export type CategoriaSolicitud = 'plomeria' | 'electricidad' | 'limpieza' | 'seguridad' | 'areas_comunes' | 'otro'
-export type TipoNotificacion = 'estado_cambio' | 'asignacion' | 'nueva_solicitud' | 'sistema'
+export type TipoNotificacion = 'estado_cambio' | 'asignacion' | 'nueva_solicitud' | 'sistema' | 'alerta_rechazo'
 
 export type Profile = {
   id: string
@@ -99,6 +99,7 @@ export type Notificacion = {
   usuario_id: string
   solicitud_id: string | null
   tipo: TipoNotificacion
+  titulo: string
   mensaje: string
   leida: boolean
   created_at: string

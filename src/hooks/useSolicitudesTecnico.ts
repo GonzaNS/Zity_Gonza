@@ -42,6 +42,7 @@ export type SolicitudAsignadaTecnico = {
   fecha_asignacion: string | null
   // Residente
   residente: ResidenteResumenTecnico | null
+  residente_id: string
 }
 
 // HU-MANT-03 SPRINT-4 — Filtros para la vista del técnico
@@ -89,7 +90,7 @@ export function useSolicitudesTecnico(filtros: FiltrosTecnico) {
           notas,
           fecha_asignacion,
           solicitud:solicitudes (
-            id, codigo, tipo, categoria, descripcion,
+            id, codigo, residente_id, tipo, categoria, descripcion,
             estado, prioridad, imagen_url, piso, departamento,
             created_at, updated_at,
             residente:usuarios!solicitudes_residente_id_fkey (
@@ -123,13 +124,13 @@ export function useSolicitudesTecnico(filtros: FiltrosTecnico) {
 
         const residente: ResidenteResumenTecnico | null = resRaw
           ? {
-              nombre: resRaw.nombre,
-              apellido: resRaw.apellido,
-              email: resRaw.email,
-              telefono: resRaw.telefono ?? null,
-              piso: resRaw.piso ?? null,
-              departamento: resRaw.departamento ?? null,
-            }
+            nombre: resRaw.nombre,
+            apellido: resRaw.apellido,
+            email: resRaw.email,
+            telefono: resRaw.telefono ?? null,
+            piso: resRaw.piso ?? null,
+            departamento: resRaw.departamento ?? null,
+          }
           : null
 
         normalizadas.push({
@@ -149,6 +150,7 @@ export function useSolicitudesTecnico(filtros: FiltrosTecnico) {
           nota_admin: (row.notas as string | null) ?? null,
           fecha_asignacion: (row.fecha_asignacion as string | null) ?? null,
           residente,
+          residente_id: sol.residente_id,
         })
       }
 
@@ -182,4 +184,32 @@ export function useSolicitudesTecnico(filtros: FiltrosTecnico) {
   }, [fetchSolicitudes])
 
   return { solicitudes, loading, error, refetch: fetchSolicitudes }
+}
+
+// ─── PBI-S3-E01 Funciones de cierre ──────────────────────────────────────────
+
+export async function subirFotoCierre(file: File, residente_id: string, solicitud_id: string): Promise<string> {
+  const fileExt = file.name.split('.').pop() || ''
+  const safeName = file.name.replace(/[^a-zA-Z0-9]/g, '_')
+  const fileName = `cierre_${Date.now()}_${safeName}.${fileExt}`
+  const filePath = `${residente_id}/${solicitud_id}/${fileName}`
+
+  const { error } = await supabase.storage.from('solicitudes-fotos').upload(filePath, file)
+  if (error) throw error
+
+  return filePath
+}
+
+export function serializarNotaCierre(textoOriginal: string, filePath: string): string {
+  return `${textoOriginal} [cierre: ${filePath}]`
+}
+
+export function parsearNotaCierre(nota: string | null): { texto: string; pathFoto: string | null } {
+  if (!nota) return { texto: '', pathFoto: null }
+  const regex = /(.*?) \[cierre: (.*?)\]$/s
+  const match = regex.exec(nota)
+  if (match && match[1] !== undefined && match[2] !== undefined) {
+    return { texto: match[1].trim(), pathFoto: match[2].trim() }
+  }
+  return { texto: nota, pathFoto: null }
 }

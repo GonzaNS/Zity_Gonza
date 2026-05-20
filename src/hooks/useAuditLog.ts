@@ -42,6 +42,8 @@ export type FiltrosAudit = {
   accion: string
   /** Entidad exacta, '' = todas */
   entidad: string
+  /** ID exacto de la entidad (PBI-S5-E02) */
+  entidadId: string
   /** Página actual (0-indexada) */
   pagina: number
 }
@@ -52,6 +54,7 @@ const FILTROS_DEFAULT: FiltrosAudit = {
   usuarioId: '',
   accion: '',
   entidad: '',
+  entidadId: '',
   pagina: 0,
 }
 
@@ -73,6 +76,7 @@ export function useFiltrosAudit() {
       usuarioId: searchParams.get('usuario') ?? '',
       accion: searchParams.get('accion') ?? '',
       entidad: searchParams.get('entidad') ?? '',
+      entidadId: searchParams.get('entidad_id') ?? '',
       pagina: Number(searchParams.get('p') ?? '0'),
     }
   }, [searchParams])
@@ -86,6 +90,7 @@ export function useFiltrosAudit() {
       if (merged.usuarioId) params.set('usuario', merged.usuarioId)
       if (merged.accion) params.set('accion', merged.accion)
       if (merged.entidad) params.set('entidad', merged.entidad)
+      if (merged.entidadId) params.set('entidad_id', merged.entidadId)
       // Al cambiar cualquier filtro reseteamos a la primera página, excepto si
       // el cambio es explícitamente de página.
       const reseteaPagina = !('pagina' in next)
@@ -157,6 +162,9 @@ export function useAuditLog(filtros: FiltrosAudit) {
       }
       if (filtros.entidad) {
         query = query.eq('entidad', filtros.entidad)
+      }
+      if (filtros.entidadId) {
+        query = query.eq('entidad_id', filtros.entidadId)
       }
 
       const desde = filtros.pagina * AUDIT_PAGE_SIZE

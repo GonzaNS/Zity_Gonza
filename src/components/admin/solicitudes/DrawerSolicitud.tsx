@@ -1,5 +1,6 @@
 // HU-MANT-02 SPRINT-4
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useModalBehavior } from '../../../hooks/useModalBehavior'
 import { type SolicitudConResidente } from '../../../hooks/useSolicitudesAdmin'
 import { actualizarPrioridadSolicitud } from '../../../hooks/useSolicitudes'
@@ -201,9 +202,18 @@ export default function DrawerSolicitud({ solicitud, fotoUrl, onCerrar, onPriori
           {/* Historial de estados */}
           {/* HU-MANT-05 SPRINT-4 — Componente reutilizable con autor, badges, paginación */}
           <div className="border-t border-warm-200 pt-5">
-            <p className="text-[0.6875rem] uppercase tracking-wider text-warm-400 mb-3">
-              Historial de estados
-            </p>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[0.6875rem] uppercase tracking-wider text-warm-400">
+                Historial de estados
+              </p>
+              {/* PBI-S5-E02 — Link al log de auditoría filtrado por esta solicitud */}
+              <Link
+                to={`/admin/auditoria?entidad=solicitudes&entidad_id=${solicitud.id}`}
+                className="text-[0.6875rem] font-semibold text-primary-600 hover:text-primary-800 transition-colors uppercase tracking-wider"
+              >
+                Ver auditoría
+              </Link>
+            </div>
             <HistorialEstados
               solicitudId={solicitud.id}
               rolObservador="admin"

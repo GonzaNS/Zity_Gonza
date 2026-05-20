@@ -140,9 +140,31 @@ export async function rechazarSolicitud(
     // Si falla el cambio de estado tras haber subido la foto, intentamos
     // borrarla para no dejar huérfana en storage.
     if (fotoPath) {
-      await supabase.storage.from(BUCKET_FOTOS).remove([fotoPath]).catch(() => {})
+      await supabase.storage.from(BUCKET_FOTOS).remove([fotoPath]).catch(() => { })
     }
     return { ok: false, error: resultado.error, escalada }
+  }
+
+  // PBI-S4-E01 — Notificación masiva a administradores
+  const { data: admins } = await supabase
+    .from('usuarios')
+    .select('id')
+    .eq('rol', 'admin')
+    .eq('estado_cuenta', 'activo')
+
+  if (admins && admins.length > 0) {
+    const notificaciones = admins.map((admin) => ({
+      usuario_id: admin.id,
+      solicitud_id: solicitudId,
+      tipo: 'alerta_rechazo',
+      titulo: escalada ? 'Solicitud escalada' : 'Solicitud rechazada',
+      mensaje: escalada 
+        ? `El residente ha rechazado la solución por ${nuevosIntentos}ª vez. La solicitud requiere atención administrativa.`
+        : `El residente ha rechazado la solución del técnico (Intento #${nuevosIntentos}).`,
+      leida: false,
+    }))
+    
+    await supabase.from('notificaciones').insert(notificaciones)
   }
 
   return { ok: true, escalada }

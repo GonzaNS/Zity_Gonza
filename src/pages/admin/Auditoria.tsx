@@ -19,6 +19,7 @@ import {
 import { tiempoTranscurrido } from '../../lib/format'
 import FiltroUsuario from '../../components/admin/auditoria/FiltroUsuario'
 import ModalDetalleAudit from '../../components/admin/auditoria/ModalDetalleAudit'
+import RangoDeFechas from '../../components/shared/RangoDeFechas'
 
 export default function AdminAuditoria() {
   const { filtros, setFiltros, resetear, esDefault } = useFiltrosAudit()
@@ -37,29 +38,12 @@ export default function AdminAuditoria() {
         <h2 className="text-xs uppercase tracking-wider text-warm-400 font-medium mb-3">Filtros</h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Fechas */}
-          <div>
-            <label htmlFor="f-desde" className="block text-xs font-medium text-primary-900 mb-1">
-              Desde
-            </label>
-            <input
-              id="f-desde"
-              type="date"
-              value={filtros.fechaDesde}
-              onChange={e => setFiltros({ fechaDesde: e.target.value })}
-              className="w-full h-10 px-2.5 rounded-lg border border-warm-300 text-sm text-primary-900 focus:outline-none focus:ring-2 focus:ring-primary-400"
-            />
-          </div>
-          <div>
-            <label htmlFor="f-hasta" className="block text-xs font-medium text-primary-900 mb-1">
-              Hasta
-            </label>
-            <input
-              id="f-hasta"
-              type="date"
-              value={filtros.fechaHasta}
-              onChange={e => setFiltros({ fechaHasta: e.target.value })}
-              className="w-full h-10 px-2.5 rounded-lg border border-warm-300 text-sm text-primary-900 focus:outline-none focus:ring-2 focus:ring-primary-400"
+          <div className="sm:col-span-2 lg:col-span-2">
+            <RangoDeFechas
+              fechaDesde={filtros.fechaDesde}
+              fechaHasta={filtros.fechaHasta}
+              onChangeDesde={val => setFiltros({ fechaDesde: val })}
+              onChangeHasta={val => setFiltros({ fechaHasta: val })}
             />
           </div>
 

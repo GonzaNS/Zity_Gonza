@@ -14,19 +14,19 @@ import type { Solicitud, EstadoSolicitud } from '../../types/database'
 // ─── Badges ──────────────────────────────────────────────────────────────────
 
 const BADGE_ESTADO: Record<EstadoSolicitud, string> = {
-  pendiente:   'bg-accent-100 text-accent-700 border-accent-300/60',
-  asignada:    'bg-primary-100 text-primary-700 border-primary-200',
+  pendiente: 'bg-accent-100 text-accent-700 border-accent-300/60',
+  asignada: 'bg-primary-100 text-primary-700 border-primary-200',
   en_progreso: 'bg-primary-50 text-primary-600 border-primary-200',
-  resuelta:    'bg-[#4a7c59]/15 text-[#2d5f3f] border-[#4a7c59]/25',
-  cerrada:     'bg-warm-100 text-warm-400 border-warm-200',
+  resuelta: 'bg-[#4a7c59]/15 text-[#2d5f3f] border-[#4a7c59]/25',
+  cerrada: 'bg-warm-100 text-warm-400 border-warm-200',
 }
 
 const BADGE_LABEL: Record<EstadoSolicitud, string> = {
-  pendiente:   'Pendiente',
-  asignada:    'Asignada',
+  pendiente: 'Pendiente',
+  asignada: 'Asignada',
   en_progreso: 'En progreso',
-  resuelta:    'Resuelta',
-  cerrada:     'Cerrada',
+  resuelta: 'Resuelta',
+  cerrada: 'Cerrada',
 }
 
 // ─── Props ───────────────────────────────────────────────────────────────────

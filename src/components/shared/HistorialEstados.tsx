@@ -18,6 +18,8 @@ import { useHistorialEstados } from '../../hooks/useHistorialEstados'
 import { tiempoTranscurrido } from '../../lib/format'
 import { extraerFotoDeNota, BUCKET_FOTOS } from '../../lib/solicitudes'
 import { supabase } from '../../lib/supabase'
+import { parsearNotaCierre } from '../../hooks/useSolicitudesTecnico'
+import FotosCierrePanel from '../tecnico/solicitudes/FotosCierrePanel'
 import type { Rol } from '../../types/database'
 
 // Sprint 5 · PBI-S4-E04 — Sufijo `[foto: path]` que el residente añade al
@@ -32,11 +34,11 @@ function notaSinFoto(nota: string | null): string | null {
 
 // HU-MANT-05 SPRINT-4 — Colores del badge de la línea de tiempo por estado
 const BADGE_ESTADO: Record<string, { dot: string; text: string; label: string }> = {
-  pendiente:   { dot: 'bg-accent-400',   text: 'text-accent-700',   label: 'Pendiente'   },
-  asignada:    { dot: 'bg-primary-400',  text: 'text-primary-700',  label: 'Asignada'    },
-  en_progreso: { dot: 'bg-primary-600',  text: 'text-primary-800',  label: 'En progreso' },
-  resuelta:    { dot: 'bg-success',      text: 'text-success',      label: 'Resuelta'    },
-  cerrada:     { dot: 'bg-warm-400',     text: 'text-warm-500',     label: 'Cerrada'     },
+  pendiente: { dot: 'bg-accent-400', text: 'text-accent-700', label: 'Pendiente' },
+  asignada: { dot: 'bg-primary-400', text: 'text-primary-700', label: 'Asignada' },
+  en_progreso: { dot: 'bg-primary-600', text: 'text-primary-800', label: 'En progreso' },
+  resuelta: { dot: 'bg-success', text: 'text-success', label: 'Resuelta' },
+  cerrada: { dot: 'bg-warm-400', text: 'text-warm-500', label: 'Cerrada' },
 }
 
 function badgePara(estado: string) {
@@ -101,11 +103,12 @@ type Props = {
   solicitudId: string
   rolObservador: Rol
   userId: string
+  fotoOriginalUrl?: string
 }
 
 // ─── Componente ──────────────────────────────────────────────────────────────
 
-export default function HistorialEstados({ solicitudId, rolObservador, userId }: Props) {
+export default function HistorialEstados({ solicitudId, rolObservador, userId, fotoOriginalUrl }: Props) {
   // HU-MANT-05 SPRINT-4 — Hook con paginación y embed de autor
   const {
     entradas,
@@ -203,15 +206,29 @@ export default function HistorialEstados({ solicitudId, rolObservador, userId }:
 
                 {/* Nota del cambio (+ foto opcional Sprint 5 PBI-S4-E04) */}
                 {h.nota && (() => {
-                  const fotoPath = extraerFotoDeNota(h.nota)
-                  const notaLimpia = notaSinFoto(h.nota)
-                  if (!notaLimpia && !fotoPath) return null
+                  const { texto: notaParseada, pathFoto: pathFotoCierre } = parsearNotaCierre(h.nota)
+                  const fotoPath = extraerFotoDeNota(notaParseada)
+                  const notaLimpia = notaSinFoto(notaParseada)
+                  
+                  if (!notaLimpia && !fotoPath && !pathFotoCierre) return null
+                  
                   return (
-                    <div className="mt-1.5 bg-warm-50 border border-warm-200 rounded-md px-2.5 py-1.5 space-y-1.5">
-                      {notaLimpia && (
-                        <p className="text-xs text-primary-700 leading-relaxed">{notaLimpia}</p>
+                    <div className="mt-1.5 space-y-1.5">
+                      {(notaLimpia || fotoPath) && (
+                        <div className="bg-warm-50 border border-warm-200 rounded-md px-2.5 py-1.5 space-y-1.5">
+                          {notaLimpia && (
+                            <p className="text-xs text-primary-700 leading-relaxed">{notaLimpia}</p>
+                          )}
+                          {fotoPath && <FotoRechazoBoton path={fotoPath} />}
+                        </div>
                       )}
-                      {fotoPath && <FotoRechazoBoton path={fotoPath} />}
+                      
+                      {pathFotoCierre && (
+                        <FotosCierrePanel 
+                          pathFotoCierre={pathFotoCierre} 
+                          fotoOriginalUrl={fotoOriginalUrl} 
+                        />
+                      )}
                     </div>
                   )
                 })()}

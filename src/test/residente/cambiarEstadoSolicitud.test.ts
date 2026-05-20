@@ -13,7 +13,7 @@ import { cambiarEstadoSolicitud } from '../../lib/solicitudes'
 // error configurado por el test.
 
 type MockResult = { error: { message: string } | null }
-type TablaTrazada = 'solicitudes' | 'historial_estados' | 'audit_log'
+type TablaTrazada = 'solicitudes' | 'historial_estados' | 'audit_log' | 'notificaciones'
 
 type EstadoTabla = {
   updateArgs?: Record<string, unknown>
@@ -26,6 +26,7 @@ const mockState: Record<TablaTrazada, EstadoTabla> = {
   solicitudes: { result: { error: null } },
   historial_estados: { result: { error: null } },
   audit_log: { result: { error: null } },
+  notificaciones: { result: { error: null } },
 }
 
 function resetMockState() {
@@ -37,6 +38,20 @@ function resetMockState() {
 const mockFrom = vi.fn((tabla: TablaTrazada) => {
   const estado = mockState[tabla]
   return {
+    select() {
+      return {
+        eq() {
+          return {
+            single() {
+              return Promise.resolve({
+                data: { residente_id: 'residente-123', codigo: 'SOL-123' },
+                error: null,
+              })
+            },
+          }
+        },
+      }
+    },
     update(values: Record<string, unknown>) {
       estado.updateArgs = values
       return {
