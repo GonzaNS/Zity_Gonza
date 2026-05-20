@@ -55,16 +55,20 @@ export default function CampanaNotificaciones() {
 
   const [isOpen, setIsOpen] = useState(false)
   const [openUp, setOpenUp] = useState(false)
+  const [openLeft, setOpenLeft] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const btnRef = useRef<HTMLButtonElement>(null)
 
-  // El panel se abre hacia arriba cuando la campana está en la parte baja de la
-  // pantalla (p. ej. el sidebar del admin): así no queda cortado por el borde
-  // inferior. Se decide al abrir, según el espacio disponible debajo del botón.
+  // El panel se reposiciona según dónde esté la campana, para no quedar cortado
+  // por los bordes de la pantalla:
+  //  - vertical: se abre hacia arriba si no hay espacio abajo (sidebar del admin).
+  //  - horizontal: se ancla a la izquierda si la campana está en la mitad izquierda
+  //    de la pantalla (sidebar del admin); a la derecha en los headers.
   function toggleMenu() {
     if (!isOpen && btnRef.current) {
       const rect = btnRef.current.getBoundingClientRect()
       setOpenUp(window.innerHeight - rect.bottom < 460)
+      setOpenLeft(rect.left < window.innerWidth / 2)
     }
     setIsOpen(prev => !prev)
   }
@@ -123,7 +127,7 @@ export default function CampanaNotificaciones() {
 
       {isOpen && (
         <div
-          className={`absolute right-0 ${openUp ? 'bottom-full mb-2' : 'top-full mt-2'} w-[calc(100vw-1rem)] sm:w-96 bg-white border border-warm-200 rounded-xl shadow-xl z-50 overflow-hidden ${openUp ? 'animate-fade-in' : 'animate-fade-in-down'}`}
+          className={`absolute ${openLeft ? 'left-0' : 'right-0'} ${openUp ? 'bottom-full mb-2' : 'top-full mt-2'} w-[calc(100vw-1rem)] sm:w-96 bg-white border border-warm-200 rounded-xl shadow-xl z-50 overflow-hidden ${openUp ? 'animate-fade-in' : 'animate-fade-in-down'}`}
           role="dialog"
           aria-label="Centro de notificaciones"
         >
