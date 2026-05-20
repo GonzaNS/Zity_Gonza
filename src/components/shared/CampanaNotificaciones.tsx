@@ -54,7 +54,20 @@ export default function CampanaNotificaciones() {
   const navigate = useNavigate()
 
   const [isOpen, setIsOpen] = useState(false)
+  const [openUp, setOpenUp] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const btnRef = useRef<HTMLButtonElement>(null)
+
+  // El panel se abre hacia arriba cuando la campana está en la parte baja de la
+  // pantalla (p. ej. el sidebar del admin): así no queda cortado por el borde
+  // inferior. Se decide al abrir, según el espacio disponible debajo del botón.
+  function toggleMenu() {
+    if (!isOpen && btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect()
+      setOpenUp(window.innerHeight - rect.bottom < 460)
+    }
+    setIsOpen(prev => !prev)
+  }
 
   // HU-NOTIF-01 (accesibilidad) — cerrar con click fuera y con la tecla Escape.
   useEffect(() => {
@@ -90,8 +103,9 @@ export default function CampanaNotificaciones() {
   return (
     <div className="relative" ref={menuRef}>
       <button
+        ref={btnRef}
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={toggleMenu}
         className="relative p-2 text-warm-500 hover:text-primary-700 hover:bg-primary-50 rounded-full transition-colors cursor-pointer"
         aria-label={noLeidasCount > 0 ? `Notificaciones, ${noLeidasCount} sin leer` : 'Notificaciones'}
         aria-haspopup="true"
@@ -109,7 +123,7 @@ export default function CampanaNotificaciones() {
 
       {isOpen && (
         <div
-          className="absolute right-0 mt-2 w-[calc(100vw-1rem)] sm:w-96 bg-white border border-warm-200 rounded-xl shadow-xl z-50 overflow-hidden animate-fade-in-down"
+          className={`absolute right-0 ${openUp ? 'bottom-full mb-2' : 'top-full mt-2'} w-[calc(100vw-1rem)] sm:w-96 bg-white border border-warm-200 rounded-xl shadow-xl z-50 overflow-hidden ${openUp ? 'animate-fade-in' : 'animate-fade-in-down'}`}
           role="dialog"
           aria-label="Centro de notificaciones"
         >
