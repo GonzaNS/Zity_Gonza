@@ -78,15 +78,25 @@ al instante.
    confirmación** ("Esto marcará N notificaciones…") antes de hacerlo.
 3. Si algo falla, sale un aviso (toast) y el cambio se revierte.
 
-## 5. Email simulado de cambio de estado ✉️
+## 5. Correo por cambio de estado ✉️
 
-**Qué es:** además del aviso en pantalla, el sistema prepara un correo de
-notificación. Por defecto está en **modo simulación (dry-run)**: en lugar de
-enviarlo, lo registra en los logs (así no se gastan envíos reales en pruebas).
+**Qué es:** además del aviso en pantalla, el residente recibe un **correo
+electrónico real** cuando cambia el estado de su solicitud. Llega desde
+**`Zity <no-reply@zity.site>`** con el código de la solicitud y el nuevo estado.
 
-**Cómo verlo:** en los **logs de la Edge Function** `notificar-cambio-estado` de
-Supabase aparece el correo que *se habría enviado* cada vez que cambia un estado.
-Para envíos reales solo hace falta configurar la clave de Resend (ver más abajo).
+**Cómo verlo:**
+1. Usa una solicitud cuyo residente tenga un **correo real** (los usuarios demo
+   como `laura@zity-demo.com` no reciben nada porque son ficticios).
+2. Cambia el estado de esa solicitud (por ejemplo, el admin la asigna o el técnico
+   la marca como resuelta).
+3. Abre la **bandeja de entrada** de ese residente: llega el correo *"Actualización
+   de la solicitud ZIT-XXX"*.
+
+> **Nota técnica:** el envío es "fire-and-forget" (si el correo fallara, el cambio
+> de estado igual se guarda). En entorno **local** (sin la clave de Resend) el
+> sistema entra en **modo simulación** y, en lugar de enviar, registra el correo en
+> los logs de la Edge Function `notificar-cambio-estado` (Supabase → Edge Functions
+> → Logs).
 
 ## 6. Foto de cierre del técnico (antes / después) 📷
 
@@ -141,14 +151,16 @@ recuperación, de forma segura.
 
 ---
 
-## Para enviar correos de verdad (opcional)
+## Sobre los correos reales
 
-El email funciona en **modo simulación** sin configurar nada. Si se quiere enviar
-correos reales, hay que definir estas variables (en Supabase / GitHub / Vercel):
+El envío de **correos reales ya está activo**: las claves de Resend
+(`RESEND_API_KEY` y `RESEND_FROM_ADDRESS`) están cargadas como *secrets* en
+Supabase y el dominio `zity.site` está verificado en Resend. No hay que configurar
+nada más para que funcione.
 
-- `RESEND_API_KEY` — la clave de la cuenta de Resend.
-- `RESEND_FROM_ADDRESS` — el remitente (por defecto `no-reply@zity.local`); debe
-  pertenecer a un dominio verificado en Resend.
+- En **producción / staging** (con la clave) → se envían correos de verdad.
+- En **local / CI** (sin la clave) → modo simulación: el correo se registra en los
+  logs en lugar de enviarse.
 
 ## Datos de demostración
 

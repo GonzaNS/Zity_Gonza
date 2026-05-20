@@ -111,7 +111,13 @@ hardcodear en el código (ver `.env.example`).
 
 ### Prueba de email real
 
-_Pendiente (Sprint 7)._
+✅ **Realizada en el Sprint 6** (se adelantó la Acción 2 del Retro). Con
+`RESEND_API_KEY` y `RESEND_FROM_ADDRESS="Zity <no-reply@zity.site>"` configurados
+como secrets en Supabase (Edge Functions) y el dominio `zity.site` verificado en
+Resend, un cambio de estado disparó el envío real: la Edge Function respondió
+`200` (~2.1 s, llamada efectiva a Resend) y el correo llegó a la bandeja del
+destinatario. Validación adicional opcional pendiente: revisar el render de la
+plantilla en varios clientes (Gmail / Outlook / ProtonMail).
 
 ## 9. Referencias
 
