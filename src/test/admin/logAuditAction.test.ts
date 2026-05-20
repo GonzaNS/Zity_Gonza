@@ -104,14 +104,15 @@ describe('logAuditAction', () => {
     if (!out.ok) expect(out.error).toBe('policy violation')
   })
 
-  it('expone catálogo de acciones con las 6 acciones del frontend', () => {
-    expect(ACCIONES_AUDIT).toHaveLength(6)
+  it('expone catálogo de acciones con las 7 acciones del frontend', () => {
+    expect(ACCIONES_AUDIT).toHaveLength(7)
     expect(ACCIONES_AUDIT).toContain('asignar_solicitud')
     expect(ACCIONES_AUDIT).toContain('actualizar_estado_solicitud')
     expect(ACCIONES_AUDIT).toContain('confirmar_solicitud')
     expect(ACCIONES_AUDIT).toContain('rechazar_solucion')
     expect(ACCIONES_AUDIT).toContain('escalada_solicitud')
     expect(ACCIONES_AUDIT).toContain('editar_perfil')
+    expect(ACCIONES_AUDIT).toContain('cambio_contrasena')
   })
 
   it('labelAccion devuelve etiquetas humanas para frontend y triggers/edge', () => {

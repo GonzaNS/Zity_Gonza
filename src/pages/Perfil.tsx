@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { ROLE_ROUTES } from '../lib/routing'
 import zityLogo from '../assets/zity_logo.png'
 import PasswordInput from '../components/PasswordInput'
+import { logAuditAction } from '../lib/audit'
 import type { Rol } from '../types/database'
 
 const NOMBRE_MIN = 2
@@ -43,25 +44,25 @@ export default function Perfil() {
   
   const [toast, setToast] = useState<string | null>(null)
 
-  // Rate Limiting
+  // Rate Limiting + countdown visual en vivo (PBI-S5-E03)
   const [intentosFallidos, setIntentosFallidos] = useState(0)
   const [bloqueadoHasta, setBloqueadoHasta] = useState<number | null>(null)
-  const isBloqueado = bloqueadoHasta !== null && Date.now() < bloqueadoHasta
+  const [ahora, setAhora] = useState(() => Date.now())
+
+  const isBloqueado = bloqueadoHasta !== null && ahora < bloqueadoHasta
+  const segundosRestantes = bloqueadoHasta ? Math.max(0, Math.ceil((bloqueadoHasta - ahora) / 1000)) : 0
 
   useEffect(() => {
-    if (bloqueadoHasta) {
-      const remaining = bloqueadoHasta - Date.now()
-      if (remaining > 0) {
-        const timer = setTimeout(() => {
-          setBloqueadoHasta(null)
-          setIntentosFallidos(0)
-        }, remaining)
-        return () => clearTimeout(timer)
-      } else {
+    if (!bloqueadoHasta) return
+    const interval = setInterval(() => {
+      const t = Date.now()
+      setAhora(t)
+      if (t >= bloqueadoHasta) {
         setBloqueadoHasta(null)
         setIntentosFallidos(0)
       }
-    }
+    }, 1000)
+    return () => clearInterval(interval)
   }, [bloqueadoHasta])
 
   const cambiosInfo = useMemo(() => {
@@ -135,6 +136,14 @@ export default function Perfil() {
       setErrorSeguridad('La nueva contraseña debe tener al menos 8 caracteres.')
       return
     }
+    if (!/\d/.test(newPassword)) {
+      setErrorSeguridad('La nueva contraseña debe incluir al menos un número.')
+      return
+    }
+    if (newPassword === currentPassword) {
+      setErrorSeguridad('La nueva contraseña no puede ser igual a la actual.')
+      return
+    }
     if (newPassword !== confirmPassword) {
       setErrorSeguridad('Las contraseñas nuevas no coinciden.')
       return
@@ -170,6 +179,13 @@ export default function Perfil() {
       })
 
       if (updateError) throw updateError
+
+      // PBI-S5-E03 / OWASP A02 — registrar el evento en audit_log SIN payload
+      // de contraseña (solo la acción). Fire-and-forget.
+      void logAuditAction(
+        { accion: 'cambio_contrasena', entidad: 'usuarios', entidadId: profile!.id },
+        profile!.id,
+      )
 
       setIntentosFallidos(0)
       setCurrentPassword('')
@@ -365,7 +381,12 @@ export default function Perfil() {
                     </svg>
                     <div>
                       <p className="text-sm font-medium text-error">Seguridad bloqueada</p>
-                      <p className="text-xs text-error/80 mt-1">Por tu seguridad, has sido bloqueado temporalmente por demasiados intentos fallidos. Inténtalo más tarde.</p>
+                      <p className="text-xs text-error/80 mt-1">
+                        Demasiados intentos fallidos. Podrás intentar de nuevo en{' '}
+                        <span className="font-semibold tabular-nums">
+                          {Math.floor(segundosRestantes / 60)}:{String(segundosRestantes % 60).padStart(2, '0')}
+                        </span>.
+                      </p>
                     </div>
                   </div>
                 ) : (

@@ -4,6 +4,7 @@
 // Reemplaza el placeholder anterior que mostraba solo un mensaje estático.
 
 import { useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import TecnicoShell from '../components/tecnico/TecnicoShell'
 import FiltrosTecnico from '../components/tecnico/solicitudes/FiltrosTecnico'
 import CardSolicitudTecnico from '../components/tecnico/solicitudes/CardSolicitudTecnico'
@@ -21,11 +22,30 @@ export default function TecnicoDashboard() {
   const fotosUrls = useFotosFirmadas(paths)
 
   // Selección por id para sincronizar con refetch
-  const [idSeleccionada, setIdSeleccionada] = useState<string | null>(null)
+  // HU-NOTIF-01 — la solicitud abierta vive en la URL (?solicitud_id): permite
+  // abrir el drawer desde la campana y compartir el enlace.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const idSeleccionada = searchParams.get('solicitud_id')
   const seleccionada: SolicitudAsignadaTecnico | null = useMemo(
     () => solicitudes.find(s => s.id === idSeleccionada) ?? null,
     [solicitudes, idSeleccionada],
   )
+
+  function abrirDrawer(id: string) {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev)
+      next.set('solicitud_id', id)
+      return next
+    })
+  }
+
+  function cerrarDrawer() {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev)
+      next.delete('solicitud_id')
+      return next
+    }, { replace: true })
+  }
 
   const subtitulo = loading
     ? 'Cargando…'
@@ -93,7 +113,7 @@ export default function TecnicoDashboard() {
               key={s.id}
               solicitud={s}
               fotoUrl={s.imagen_url ? fotosUrls.get(s.imagen_url) : undefined}
-              onClick={() => setIdSeleccionada(s.id)}
+              onClick={() => abrirDrawer(s.id)}
             />
           ))}
         </div>
@@ -106,7 +126,7 @@ export default function TecnicoDashboard() {
         <DrawerDetalleTecnico
           solicitud={seleccionada}
           fotoUrl={seleccionada.imagen_url ? fotosUrls.get(seleccionada.imagen_url) : undefined}
-          onCerrar={() => setIdSeleccionada(null)}
+          onCerrar={cerrarDrawer}
           onEstadoActualizado={refetch}
         />
       )}

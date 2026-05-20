@@ -40,7 +40,8 @@ export default function FotosCierrePanel({ pathFotoCierre, fotoOriginalUrl }: Pr
         Evidencia de solución
       </p>
       
-      <div className="grid grid-cols-2 gap-3">
+      {/* PBI-S3-E01 — en móvil (<640px) las fotos se apilan verticalmente. */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <p className="text-[10px] uppercase text-warm-500 font-semibold text-center tracking-wider">
             Antes

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import AdminShell from '../../components/admin/AdminShell'
 import FiltrosSolicitudes from '../../components/admin/solicitudes/FiltrosSolicitudes'
 import TablaSolicitudes from '../../components/admin/solicitudes/TablaSolicitudes'
@@ -19,11 +20,30 @@ export default function AdminSolicitudes() {
   // La selección la guardamos por id; los datos completos los derivamos del
   // array `solicitudes`. Así, tras un refetch la `seleccionada` queda
   // automáticamente sincronizada con los nuevos valores (prioridad, estado).
-  const [idSeleccionada, setIdSeleccionada] = useState<string | null>(null)
+  // HU-NOTIF-01 / PBI-S4-E01 — la solicitud abierta vive en la URL (?solicitud_id):
+  // la campana puede abrir el drawer y el enlace resultante es compartible.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const idSeleccionada = searchParams.get('solicitud_id')
   const seleccionada = useMemo(
     () => solicitudes.find(s => s.id === idSeleccionada) ?? null,
     [solicitudes, idSeleccionada],
   )
+
+  function abrirDrawer(id: string) {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev)
+      next.set('solicitud_id', id)
+      return next
+    })
+  }
+
+  function cerrarDrawer() {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev)
+      next.delete('solicitud_id')
+      return next
+    }, { replace: true })
+  }
 
   const subtitulo = `${solicitudes.length} solicitud${solicitudes.length !== 1 ? 'es' : ''} ${solicitudes.length !== 1 ? 'encontradas' : 'encontrada'}`
 
@@ -44,7 +64,7 @@ export default function AdminSolicitudes() {
           solicitudes={solicitudes}
           loading={loading}
           fotosUrls={fotosUrls}
-          onAbrir={s => setIdSeleccionada(s.id)}
+          onAbrir={s => abrirDrawer(s.id)}
         />
       </div>
 
@@ -53,7 +73,7 @@ export default function AdminSolicitudes() {
         <DrawerSolicitud
           solicitud={seleccionada}
           fotoUrl={seleccionada.imagen_url ? fotosUrls.get(seleccionada.imagen_url) : undefined}
-          onCerrar={() => setIdSeleccionada(null)}
+          onCerrar={cerrarDrawer}
           onPrioridadActualizada={refetch}
           onAsignacionRealizada={refetch}
         />

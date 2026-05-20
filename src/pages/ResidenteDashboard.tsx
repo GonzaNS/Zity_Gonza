@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { useSolicitudes, useFotosFirmadas } from '../hooks/useSolicitudes'
 import ModalNuevaSolicitud from '../components/residente/ModalNuevaSolicitud'
 // HU-MANT-05 SPRINT-4 — Drawer de detalle con historial para el residente
@@ -36,8 +36,10 @@ export default function ResidenteDashboard() {
 
   const [mostrarModal, setMostrarModal] = useState(false)
   const [confirmacionId, setConfirmacionId] = useState<string | null>(null)
-  // HU-MANT-05 SPRINT-4 — Solicitud seleccionada para abrir el drawer de detalle
-  const [idSeleccionada, setIdSeleccionada] = useState<string | null>(null)
+  // HU-MANT-05 SPRINT-4 / HU-NOTIF-01 — la solicitud abierta vive en la URL
+  // (?solicitud_id): permite abrir el drawer desde la campana y compartir el link.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const idSeleccionada = searchParams.get('solicitud_id')
 
   const { solicitudes, loading, error, refetch } = useSolicitudes({ residente_id: user?.id })
   const fotosUrls = useFotosFirmadas(solicitudes.map(s => s.imagen_url))
@@ -58,6 +60,22 @@ export default function ResidenteDashboard() {
     () => solicitudes.find(s => s.id === idSeleccionada) ?? null,
     [solicitudes, idSeleccionada],
   )
+
+  function abrirDrawer(id: string) {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev)
+      next.set('solicitud_id', id)
+      return next
+    })
+  }
+
+  function cerrarDrawer() {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev)
+      next.delete('solicitud_id')
+      return next
+    }, { replace: true })
+  }
 
   async function handleSignOut() {
     await signOut()
@@ -198,7 +216,7 @@ export default function ResidenteDashboard() {
                 <li
                   key={s.id}
                   className="bg-white rounded-xl border border-warm-200 overflow-hidden hover:border-primary-300 hover:shadow-sm transition-all cursor-pointer"
-                  onClick={() => setIdSeleccionada(s.id)}
+                  onClick={() => abrirDrawer(s.id)}
                 >
                   {s.imagen_url && (
                     <div className="aspect-[16/9] bg-warm-100 overflow-hidden">
@@ -257,7 +275,7 @@ export default function ResidenteDashboard() {
         <DrawerDetalleSolicitudResidente
           solicitud={seleccionada}
           fotoUrl={seleccionada.imagen_url ? fotosUrls.get(seleccionada.imagen_url) : undefined}
-          onCerrar={() => setIdSeleccionada(null)}
+          onCerrar={cerrarDrawer}
         />
       )}
     </div>

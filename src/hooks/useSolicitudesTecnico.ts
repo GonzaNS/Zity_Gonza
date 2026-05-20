@@ -188,11 +188,21 @@ export function useSolicitudesTecnico(filtros: FiltrosTecnico) {
 
 // ─── PBI-S3-E01 Funciones de cierre ──────────────────────────────────────────
 
-export async function subirFotoCierre(file: File, residente_id: string, solicitud_id: string): Promise<string> {
-  const fileExt = file.name.split('.').pop() || ''
-  const safeName = file.name.replace(/[^a-zA-Z0-9]/g, '_')
-  const fileName = `cierre_${Date.now()}_${safeName}.${fileExt}`
-  const filePath = `${residente_id}/${solicitud_id}/${fileName}`
+// PBI-S3-E01 — Sube la foto de cierre del técnico al bucket solicitudes-fotos.
+// El primer segmento del path DEBE ser el uid de quien sube (el técnico): la
+// storage policy `solicitudes_fotos_insert_propio` exige
+// (storage.foldername(name))[1] = auth.uid(). Por eso `propietarioId` es el
+// técnico, no el residente. La lectura funciona porque el SELECT del bucket es
+// para cualquier usuario autenticado.
+export async function subirFotoCierre(file: File, propietarioId: string, solicitud_id: string): Promise<string> {
+  const timestamp = Date.now()
+  const nombreSeguro = file.name
+    .toLowerCase()
+    .replace(/[^a-z0-9.]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    || 'foto'
+  const filePath = `${propietarioId}/${solicitud_id}/cierre_${timestamp}_${nombreSeguro}`
 
   const { error } = await supabase.storage.from('solicitudes-fotos').upload(filePath, file)
   if (error) throw error

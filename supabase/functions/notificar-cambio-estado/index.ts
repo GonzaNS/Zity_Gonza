@@ -74,9 +74,14 @@ Deno.serve(async (req: Request) => {
     `
 
     const resendApiKey = Deno.env.get("RESEND_API_KEY")
+    // Sprint 6 — remitente configurable vía RESEND_FROM_ADDRESS. El default usa el
+    // dominio de producción (debe estar VERIFICADO en Resend). Para envíos reales
+    // se fija RESEND_FROM_ADDRESS al remitente verificado del proyecto.
+    const resendFrom = Deno.env.get("RESEND_FROM_ADDRESS") ?? "Zity <no-reply@zity.site>"
 
     if (!resendApiKey) {
       console.log("----- DRY-RUN EMAIL -----")
+      console.log(`From: ${resendFrom}`)
       console.log(`To: ${residente.email}`)
       console.log(`Subject: [Zity] Actualización de la solicitud ${solicitud.codigo}`)
       console.log("Body HTML:")
@@ -93,7 +98,7 @@ Deno.serve(async (req: Request) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Zity Condominios <no-reply@zity.site>",
+        from: resendFrom,
         to: [residente.email],
         subject: `[Zity] Actualización de la solicitud ${solicitud.codigo}`,
         html: emailHtml,
@@ -102,10 +107,12 @@ Deno.serve(async (req: Request) => {
 
     if (!res.ok) {
       const errorText = await res.text()
+      console.error(`[notificar-cambio-estado] Resend devolvió error para ${residente.email}: ${errorText}`)
       throw new Error(`Fallo al enviar correo vía Resend: ${errorText}`)
     }
 
     const resData = await res.json()
+    console.log(`[notificar-cambio-estado] Email REAL enviado a ${residente.email} (Resend id: ${resData.id})`)
     return jsonResponse(req, { success: true, messageId: resData.id })
   } catch (error) {
     return jsonResponse(req, { error: (error as Error).message }, 500)

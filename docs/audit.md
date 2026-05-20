@@ -26,6 +26,14 @@
 
 ## 2. Catálogo cerrado de acciones
 
+> **Sprint 6 (Acción 1 del Retro S5).** El catálogo es ahora una tabla en la BD,
+> `audit_acciones (codigo PK, descripcion, requiere_detalle)`, que es la **única
+> fuente de verdad** del dominio: `audit_log.accion` tiene una FK contra ella
+> (reemplaza el antiguo CHECK). El frontend puede leerla vía el RPC
+> `catalogo_acciones()`. El union `AccionAudit` de `src/lib/audit.ts` se mantiene
+> como capa de presentación (etiquetas/orden) y debe quedar alineado con la tabla.
+> Migración: `supabase/migrations/20260520152631_sprint6_audit_acciones.sql`.
+
 Las acciones del frontend están tipadas en TypeScript (`AccionAudit` en
 `src/lib/audit.ts`). Las generadas por triggers/Edge Functions aparecen
 en el filtro pero no se pueden escribir desde el cliente.
@@ -40,6 +48,7 @@ en el filtro pero no se pueden escribir desde el cliente.
 | `rechazar_solucion` | residente | `solicitudes` | Rechazo bajo el umbral de escalada (HU-MANT-07) |
 | `escalada_solicitud` | residente | `solicitudes` | Rechazo #3 que vuelve la solicitud a `pendiente` |
 | `editar_perfil` | residente / técnico / admin | `usuarios` | Edición de nombre/apellido/teléfono propio (PBI-S2-E03, opcional) |
+| `cambio_contrasena` | residente / técnico / admin | `usuarios` | Cambio de contraseña desde `/perfil` (PBI-S5-E03). **Sin payload** (OWASP A02): solo se registra la acción |
 
 ### Originadas por triggers de la BD
 

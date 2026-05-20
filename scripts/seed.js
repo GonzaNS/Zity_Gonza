@@ -220,6 +220,39 @@ async function seedSolicitudes(ids) {
   }
 }
 
+// Sprint 6 (--notify) — encola 10 notificaciones iniciales por residente activo
+// del seed, para demostrar el centro de notificaciones y el Realtime en la Review.
+// Usa service_role (policy notificaciones_insert_service_role).
+async function seedNotificaciones(ids) {
+  console.log('Encolando notificaciones demo (--notify)...')
+  const residentes = USERS.filter(u => u.metadata.rol === 'residente')
+  const plantillas = [
+    { tipo: 'estado_cambio', titulo: 'Solicitud en progreso', mensaje: 'Tu solicitud cambió a: en progreso.' },
+    { tipo: 'estado_cambio', titulo: 'Solución reportada por el técnico', mensaje: 'Tu solicitud cambió a: resuelta.' },
+    { tipo: 'asignacion', titulo: 'Solicitud asignada a un técnico', mensaje: 'Se asignó un técnico a tu solicitud.' },
+    { tipo: 'nueva_solicitud', titulo: 'Solicitud registrada', mensaje: 'Tu solicitud se registró correctamente.' },
+    { tipo: 'sistema', titulo: 'Bienvenido a Zity', mensaje: 'Tu cuenta está activa. Ya puedes crear solicitudes.' },
+  ]
+  for (const r of residentes) {
+    const uid = ids[r.email]
+    if (!uid) continue
+    const filas = Array.from({ length: 10 }, (_, i) => {
+      const p = plantillas[i % plantillas.length]
+      return {
+        usuario_id: uid,
+        solicitud_id: null,
+        tipo: p.tipo,
+        titulo: p.titulo,
+        mensaje: p.mensaje,
+        leida: i >= 4, // las primeras 4 quedan sin leer
+      }
+    })
+    const { error } = await supabase.from('notificaciones').insert(filas)
+    if (error) console.error(`  Error notificaciones ${r.email}:`, error.message)
+    else console.log(`  ✓ 10 notificaciones para ${r.email}`)
+  }
+}
+
 async function main() {
   // `--clean` borra los datos demo antes de insertar (uso recomendado en
   // staging después de pruebas manuales). Sin la bandera el seed es
@@ -231,6 +264,10 @@ async function main() {
   const adminId = ids['carlos@zity-demo.com']
   if (adminId) await seedInvitacion(adminId)
   await seedSolicitudes(ids)
+  // Sprint 6 — notificaciones demo opcionales para la Review.
+  if (process.argv.includes('--notify')) {
+    await seedNotificaciones(ids)
+  }
   console.log('\n✅ Seed completado.')
 }
 

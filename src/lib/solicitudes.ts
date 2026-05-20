@@ -246,45 +246,23 @@ export async function cambiarEstadoSolicitud(
     usuarioId,
   )
 
-  // 4) Notificaciones PBI-12 — Simulación frontend del trigger after_solicitud_estado_changed
-  // Consultamos el residente asociado a esta solicitud
-  const { data: solData } = await supabase
-    .from('solicitudes')
-    .select('residente_id, codigo')
-    .eq('id', solicitudId)
-    .single()
-
-  if (solData?.residente_id) {
-    const titulos: Record<string, string> = {
-      asignada: 'Solicitud asignada a técnico',
-      en_progreso: 'Solicitud en progreso',
-      resuelta: 'Solución reportada por técnico',
-      cerrada: 'Solicitud cerrada',
-    }
-    
-    if (titulos[estadoNuevo]) {
-      await supabase.from('notificaciones').insert({
-        usuario_id: solData.residente_id,
-        solicitud_id: solicitudId,
-        tipo: 'estado_cambio',
-        titulo: titulos[estadoNuevo],
-        mensaje: `Tu solicitud ${solData.codigo || ''} ha cambiado su estado a: ${estadoNuevo.replace('_', ' ')}.`,
-        leida: false
+  // 4) Notificaciones PBI-12 — La notificación in-app + Realtime la genera el
+  //    trigger de BD `after_solicitud_estado_changed` (SECURITY DEFINER), que
+  //    inserta 1 fila por destinatario relevante (residente, técnico, admins).
+  //    No se inserta desde el cliente: la RLS `insert_own` solo permite crear
+  //    notificaciones para uno mismo, no para otros usuarios.
+  //
+  //    Aquí solo disparamos el email simulado en modo fire-and-forget: si Resend
+  //    responde 4xx/5xx NO se revierte el cambio de estado (el error queda en los
+  //    logs de la Edge Function).
+  if (supabase.functions) {
+    void supabase.functions
+      .invoke('notificar-cambio-estado', {
+        body: { solicitud_id: solicitudId, estado_nuevo: estadoNuevo, cambiado_por: usuarioId },
       })
-
-      // PBI-12 — Invocar Edge Function de email en modo fire-and-forget
-      if (supabase.functions) {
-        void supabase.functions.invoke('notificar-cambio-estado', {
-          body: {
-            solicitud_id: solicitudId,
-            estado_nuevo: estadoNuevo,
-            cambiado_por: usuarioId,
-          },
-        }).catch(err => {
-          console.warn('[PBI-12] Error al disparar Edge Function de email:', err)
-        })
-      }
-    }
+      .catch(err => {
+        console.warn('[PBI-12] Error al disparar Edge Function de email:', err)
+      })
   }
 
   return { ok: true }

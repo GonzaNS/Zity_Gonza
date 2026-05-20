@@ -28,6 +28,8 @@ export type AccionAudit =
   // Usuarios — perfil propio (gestión administrativa va por Edge Functions
   // con service_role; no se loguean desde frontend)
   | 'editar_perfil'
+  // Sprint 6 · PBI-S5-E03 — cambio de contraseña (sin payload por OWASP A02)
+  | 'cambio_contrasena'
 
 /** Entidades sobre las que se audita desde el frontend authenticated. */
 export type EntidadAudit =
@@ -108,6 +110,7 @@ export const ACCIONES_AUDIT: ReadonlyArray<AccionAudit> = [
   'rechazar_solucion',
   'escalada_solicitud',
   'editar_perfil',
+  'cambio_contrasena',
 ] as const
 
 /** Catálogo de entidades en runtime. Incluye también las que escriben las
@@ -145,6 +148,7 @@ export function labelAccion(accion: string): string {
     rechazar_solucion: 'Rechazar solución',
     escalada_solicitud: 'Escalada al admin',
     editar_perfil: 'Editar perfil',
+    cambio_contrasena: 'Cambio de contraseña',
     crear_solicitud: 'Crear solicitud',
     cambiar_prioridad: 'Cambiar prioridad',
     crear_invitacion: 'Crear invitación',

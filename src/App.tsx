@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { NotificacionesProvider } from './contexts/NotificacionesContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import { AuthShell } from './components/AuthLayout'
 import FullPageSpinner from './components/FullPageSpinner'
@@ -50,6 +51,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <NotificacionesProvider>
         <Suspense fallback={<FullPageSpinner />}>
           <Routes>
             {/* Auth routes — AuthShell se mantiene montado entre páginas; solo cambia el Outlet */}
@@ -115,6 +117,7 @@ export default function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
+        </NotificacionesProvider>
       </AuthProvider>
     </BrowserRouter>
   )

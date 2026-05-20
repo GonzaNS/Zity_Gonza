@@ -145,28 +145,10 @@ export async function rechazarSolicitud(
     return { ok: false, error: resultado.error, escalada }
   }
 
-  // PBI-S4-E01 — Notificación masiva a administradores
-  const { data: admins } = await supabase
-    .from('usuarios')
-    .select('id')
-    .eq('rol', 'admin')
-    .eq('estado_cuenta', 'activo')
-
-  if (admins && admins.length > 0) {
-    const notificaciones = admins.map((admin) => ({
-      usuario_id: admin.id,
-      solicitud_id: solicitudId,
-      tipo: 'alerta_rechazo',
-      titulo: escalada ? 'Solicitud escalada' : 'Solicitud rechazada',
-      mensaje: escalada 
-        ? `El residente ha rechazado la solución por ${nuevosIntentos}ª vez. La solicitud requiere atención administrativa.`
-        : `El residente ha rechazado la solución del técnico (Intento #${nuevosIntentos}).`,
-      leida: false,
-    }))
-    
-    await supabase.from('notificaciones').insert(notificaciones)
-  }
-
+  // PBI-S4-E01 — La alerta a los administradores (tipo 'alerta_rechazo') la
+  // genera el trigger `after_solicitud_estado_changed` al detectar la transición
+  // resuelta -> en_progreso/pendiente. Ya no se inserta desde el cliente: la RLS
+  // `insert_own` impide crear notificaciones para otros usuarios (los admins).
   return { ok: true, escalada }
 }
 

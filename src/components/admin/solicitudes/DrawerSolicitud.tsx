@@ -1,6 +1,7 @@
 // HU-MANT-02 SPRINT-4
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { supabase } from '../../../lib/supabase'
 import { useModalBehavior } from '../../../hooks/useModalBehavior'
 import { type SolicitudConResidente } from '../../../hooks/useSolicitudesAdmin'
 import { actualizarPrioridadSolicitud } from '../../../hooks/useSolicitudes'
@@ -34,6 +35,22 @@ export default function DrawerSolicitud({ solicitud, fotoUrl, onCerrar, onPriori
   const [errorPrioridad, setErrorPrioridad] = useState<string | null>(null)
   // HU-MANT-02 SPRINT-4 — Controla la apertura del modal de asignación
   const [modalAsignarAbierto, setModalAsignarAbierto] = useState(false)
+
+  // PBI-S5-E02 — Conteo de entradas de audit_log de esta solicitud, para mostrar
+  // el botón "Ver auditoría" solo si existe al menos 1 acción registrada.
+  const [auditCount, setAuditCount] = useState<number | null>(null)
+  useEffect(() => {
+    let activo = true
+    void supabase
+      .from('audit_log')
+      .select('id', { count: 'exact', head: true })
+      .eq('entidad', 'solicitudes')
+      .eq('entidad_id', solicitud.id)
+      .then(({ count }) => {
+        if (activo) setAuditCount(count ?? 0)
+      })
+    return () => { activo = false }
+  }, [solicitud.id])
 
   useModalBehavior(onCerrar, actualizando)
 
@@ -206,13 +223,17 @@ export default function DrawerSolicitud({ solicitud, fotoUrl, onCerrar, onPriori
               <p className="text-[0.6875rem] uppercase tracking-wider text-warm-400">
                 Historial de estados
               </p>
-              {/* PBI-S5-E02 — Link al log de auditoría filtrado por esta solicitud */}
-              <Link
-                to={`/admin/auditoria?entidad=solicitudes&entidad_id=${solicitud.id}`}
-                className="text-[0.6875rem] font-semibold text-primary-600 hover:text-primary-800 transition-colors uppercase tracking-wider"
-              >
-                Ver auditoría
-              </Link>
+              {/* PBI-S5-E02 — Link al log de auditoría filtrado por esta solicitud.
+                  Solo visible si hay al menos 1 entrada registrada. */}
+              {auditCount !== null && auditCount > 0 && (
+                <Link
+                  to={`/admin/auditoria?entidad=solicitudes&entidad_id=${solicitud.id}`}
+                  title={`Ver las ${auditCount} ${auditCount === 1 ? 'acción registrada' : 'acciones registradas'} para ${solicitud.codigo}`}
+                  className="text-[0.6875rem] font-semibold text-primary-600 hover:text-primary-800 transition-colors uppercase tracking-wider"
+                >
+                  Ver auditoría
+                </Link>
+              )}
             </div>
             <HistorialEstados
               solicitudId={solicitud.id}
