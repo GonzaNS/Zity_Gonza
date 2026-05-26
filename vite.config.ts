@@ -55,6 +55,13 @@ export default defineConfig({
           functions: 60,
           branches: 60,
         },
+        // Sprint 7 — PBI-22 Fórmulas de métricas de mantenimiento.
+        'src/lib/metricas.ts': {
+          lines: 80,
+          statements: 80,
+          functions: 80,
+          branches: 80,
+        },
       },
     },
   },
