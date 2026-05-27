@@ -61,6 +61,16 @@ const NAV = [
       </svg>
     ),
   },
+  // Sprint 8 · HU-FACT-02 — Facturación y emisión de recibos
+  {
+    to: '/admin/facturacion',
+    label: 'Facturación',
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" />
+      </svg>
+    ),
+  },
   // Sprint 5 · PBI-S2-E03 — perfil propio editable
   {
     to: '/perfil',
@@ -244,7 +254,7 @@ export default function AdminShell({ children, title, subtitle, actions }: Props
       {/* Main */}
       <div className="flex-1 lg:ml-64 pt-14 lg:pt-0">
         <div className="px-4 sm:px-6 lg:px-10 py-6 sm:py-8 lg:py-10 max-w-7xl mx-auto w-full">
-          <div className="mb-6 sm:mb-8 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between animate-fade-in">
+          <div className="mb-6 sm:mb-8 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between animate-fade-in relative z-20">
             <div className="min-w-0">
               <h1 className="font-display text-xl sm:text-2xl lg:text-3xl font-semibold text-primary-900 tracking-tight">
                 {title}
@@ -253,7 +263,7 @@ export default function AdminShell({ children, title, subtitle, actions }: Props
                 <p className="mt-1 text-sm text-warm-400">{subtitle}</p>
               )}
             </div>
-            {actions && <div className="shrink-0">{actions}</div>}
+            {actions && <div className="shrink-0 overflow-visible">{actions}</div>}
           </div>
 
           {children}

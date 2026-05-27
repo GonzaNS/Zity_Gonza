@@ -109,6 +109,14 @@ export default function ResidenteDashboard() {
             >
               {profile?.nombre} {profile?.apellido}
             </Link>
+            {/* Sprint 8 · HU-FACT-03 — link a facturas */}
+            <Link
+              to="/residente/facturas"
+              className="text-sm text-primary-700 hover:text-primary-900 font-medium hidden sm:inline"
+              title="Ver mis facturas"
+            >
+              Mis facturas
+            </Link>
             <button
               onClick={handleSignOut}
               className="text-sm text-warm-400 hover:text-error transition-colors font-medium cursor-pointer"
