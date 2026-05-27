@@ -39,6 +39,13 @@ function getIconForTipo(tipo: TipoNotificacion) {
           <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
         </svg>
       )
+    // Sprint 8 · HU-FACT-05 — icono de recibo para facturas nuevas
+    case 'factura_nueva':
+      return (
+        <svg className="w-5 h-5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" />
+        </svg>
+      )
     default:
       return (
         <svg className="w-5 h-5 text-warm-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -93,10 +100,20 @@ export default function CampanaNotificaciones() {
     }
   }, [isOpen])
 
-  // HU-NOTIF-01 — click en item: marca como leída y navega al detalle de la solicitud.
+  // HU-NOTIF-01 — click en item: marca como leída y navega al detalle.
+  // Sprint 8 · HU-FACT-05 — facturas navegan a /residente/facturas con el id.
   function handleAbrir(notif: Notificacion) {
     setIsOpen(false)
     if (!notif.leida) void marcarComoLeida(notif.id)
+
+    if (notif.tipo === 'factura_nueva') {
+      // Navegar a la vista de facturas; el id se pasa como query param para
+      // que la página pueda pre-seleccionar el detalle de esa factura.
+      const facturaId = notif.metadata?.factura_id
+      navigate(facturaId ? `/residente/facturas?id=${facturaId}` : '/residente/facturas')
+      return
+    }
+
     if (notif.solicitud_id && profile?.rol) {
       navigate(`${RUTA_SOLICITUDES[profile.rol]}?solicitud_id=${notif.solicitud_id}`)
     }

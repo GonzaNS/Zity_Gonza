@@ -23,6 +23,7 @@ const AdminAuditoria = lazy(() => import('./pages/admin/Auditoria'))
 const AdminMetricas = lazy(() => import('./pages/admin/Metricas'))     // Sprint 7 · PBI-22
 const AdminFacturacion = lazy(() => import('./pages/admin/Facturacion')) // Sprint 8 · HU-FACT-02
 const ResidenteDashboard = lazy(() => import('./pages/ResidenteDashboard'))
+const ResidenteFacturas = lazy(() => import('./pages/residente/Facturas')) // Sprint 8 · HU-FACT-03
 const TecnicoDashboard = lazy(() => import('./pages/TecnicoDashboard'))
 const Perfil = lazy(() => import('./pages/Perfil'))
 const Notificaciones = lazy(() => import('./pages/Notificaciones'))
@@ -104,6 +105,12 @@ export default function App() {
             <Route path="/residente" element={
               <ProtectedRoute allowedRoles={['residente']}>
                 <ResidenteDashboard />
+              </ProtectedRoute>
+            } />
+            {/* Sprint 8 · HU-FACT-03 — Facturas del residente */}
+            <Route path="/residente/facturas" element={
+              <ProtectedRoute allowedRoles={['residente']}>
+                <ResidenteFacturas />
               </ProtectedRoute>
             } />
             <Route path="/tecnico" element={

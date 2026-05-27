@@ -26,6 +26,8 @@ export type Factura = {
   vencimiento:   string   // ISO date 'YYYY-MM-DD'
   estado:        FacturaEstado
   descripcion:   string | null
+  /** Número legible, ej: F-2026-05-001. Null hasta ejecutar migr. HU-FACT-03. */
+  numero:        string | null
   created_at:    string
   updated_at:    string
 }

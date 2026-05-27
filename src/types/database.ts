@@ -102,6 +102,8 @@ export type Notificacion = {
   titulo: string
   mensaje: string
   leida: boolean
+  /** Sprint 8 · HU-FACT-05 — datos extra por tipo (ej: { factura_id: string }). */
+  metadata?: Record<string, string> | null
   created_at: string
 }
 
