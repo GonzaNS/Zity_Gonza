@@ -6,12 +6,25 @@
 //   ■ Primera carga inmediata al montar el componente.
 //   ■ Expone `loading`, `error` y `metricas` (o null si todavía no llegaron).
 //   ■ Llama al RPC `get_metricas_mantenimiento` que verifica rol admin server-side.
+//
+// Sprint 7 Refactor · Vista Materializada:
+//   ■ El RPC ahora devuelve `vista_refreshed_at` (marca del último REFRESH de
+//     vw_metricas_solicitudes). Si la vista tiene >1h de antigüedad, el hook
+//     dispara `refresh_metricas_on_demand()` y luego re-fetcha para servir
+//     los datos frescos. Esto garantiza que el panel nunca muestre datos con
+//     más de 1 hora de desfase incluso si pg_cron no está configurado.
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import type { MetricasMantenimiento } from '../lib/metricas'
 
 const REFRESH_INTERVAL_MS = 60_000 // 60 segundos
+const VISTA_MAX_AGE_MS    = 60 * 60 * 1000 // 1 hora
+
+// Tipo interno que incluye el campo extra de la vista materializada
+type MetricasRpcResponse = MetricasMantenimiento & {
+  vista_refreshed_at?: string | null
+}
 
 export type UseMetricasMantenimientoResult = {
   metricas: MetricasMantenimiento | null
@@ -29,7 +42,6 @@ export function useMetricasMantenimiento(): UseMetricasMantenimientoResult {
   const [error, setError] = useState<string | null>(null)
   const [ultimaActualizacion, setUltimaActualizacion] = useState<string | null>(null)
 
-  // Usamos ref para el intervalo y para evitar race conditions con fetch en vuelo.
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const abortRef = useRef<AbortController | null>(null)
 
@@ -38,12 +50,8 @@ export function useMetricasMantenimiento(): UseMetricasMantenimientoResult {
     abortRef.current?.abort()
     abortRef.current = new AbortController()
 
-    // No setLoading(true) en refrescos automáticos — solo en la primera carga
-    // para evitar el flash de spinner cada 60 s (UX más limpio).
-
     const { data, error: rpcError } = await supabase.rpc('get_metricas_mantenimiento')
 
-    // Si fue abortado, ignorar respuesta.
     if (abortRef.current.signal.aborted) return
 
     if (rpcError) {
@@ -53,7 +61,37 @@ export function useMetricasMantenimiento(): UseMetricasMantenimientoResult {
     }
 
     if (data) {
-      setMetricas(data as MetricasMantenimiento)
+      const respuesta = data as MetricasRpcResponse
+
+      // ── Fallback on-demand de la vista materializada ─────────────────────────
+      // Si la vista tiene más de 1 hora de antigüedad, disparar un refresh
+      // on-demand y luego re-fetchear para servir datos actualizados.
+      // Esto actúa como seguro si pg_cron no está configurado.
+      const vistaRefreshedAt = respuesta.vista_refreshed_at
+        ? new Date(respuesta.vista_refreshed_at).getTime()
+        : 0
+      const vistaEdadMs = Date.now() - vistaRefreshedAt
+      const vistaEsAntigua = vistaEdadMs > VISTA_MAX_AGE_MS
+
+      if (vistaEsAntigua) {
+        // Disparar refresh on-demand en background (sin await para no bloquear la UI)
+        void supabase.rpc('refresh_metricas_on_demand').then(async () => {
+          if (abortRef.current?.signal.aborted) return
+          // Re-fetchear con la vista ya actualizada
+          const { data: dataFresh, error: errFresh } = await supabase.rpc('get_metricas_mantenimiento')
+          if (!abortRef.current?.signal.aborted && !errFresh && dataFresh) {
+            const { vista_refreshed_at: _, ...metricas } = dataFresh as MetricasRpcResponse
+            setMetricas(metricas as MetricasMantenimiento)
+            setUltimaActualizacion(new Date().toISOString())
+            setError(null)
+          }
+        })
+      }
+
+      // Publicar datos actuales inmediatamente (sin esperar al refresh on-demand)
+      // para no bloquear la UI. Si había datos viejos, el re-fetch los reemplazará.
+      const { vista_refreshed_at: _, ...metricasLimpias } = respuesta
+      setMetricas(metricasLimpias as MetricasMantenimiento)
       setUltimaActualizacion(new Date().toISOString())
       setError(null)
     }
@@ -69,9 +107,8 @@ export function useMetricasMantenimiento(): UseMetricasMantenimientoResult {
   // ─── Auto-refresh con pausa en background ─────────────────────────────────
   useEffect(() => {
     function iniciarIntervalo() {
-      if (intervalRef.current) return // ya activo
+      if (intervalRef.current) return
       intervalRef.current = setInterval(() => {
-        // Solo refrescar si el tab está visible.
         if (document.visibilityState === 'visible') {
           void fetchMetricas()
         }
@@ -87,11 +124,9 @@ export function useMetricasMantenimiento(): UseMetricasMantenimientoResult {
 
     function handleVisibilityChange() {
       if (document.visibilityState === 'visible') {
-        // Tab volvió al frente: refrescar inmediatamente y reanudar intervalo.
         void fetchMetricas()
         iniciarIntervalo()
       } else {
-        // Tab fue a background: pausar intervalo para no gastar quota.
         detenerIntervalo()
       }
     }
