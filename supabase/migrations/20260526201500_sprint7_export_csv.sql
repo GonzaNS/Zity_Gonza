@@ -49,7 +49,7 @@ BEGIN
     to_char(s.updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') AS "Fecha Actualización",
     COALESCE(p.nombre || ' ' || p.apellido, '—') AS "Nombre Residente"
   FROM solicitudes s
-  LEFT JOIN perfiles p ON s.residente_id = p.id
+  LEFT JOIN usuarios p ON s.residente_id = p.id
   WHERE s.created_at >= f_inicio::timestamp
     AND s.created_at < (f_fin + interval '1 day')::timestamp
   ORDER BY s.created_at DESC;
