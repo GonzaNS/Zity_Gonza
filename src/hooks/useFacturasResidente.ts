@@ -35,7 +35,8 @@ export function useFacturasResidente(filtro: FiltroFactura): UseFacturasResident
   // Reset y primera carga al cambiar el filtro
   const cargarPrimera = useCallback(async () => {
     abortRef.current?.abort()
-    abortRef.current = new AbortController()
+    const controller = new AbortController()
+    abortRef.current = controller
 
     setLoading(true)
     setError(null)
@@ -50,7 +51,7 @@ export function useFacturasResidente(filtro: FiltroFactura): UseFacturasResident
       .order('vencimiento', { ascending: true })
       .order('created_at', { ascending: false })
       .range(0, PAGE_SIZE - 1)
-      .abortSignal(abortRef.current.signal)
+      .abortSignal(controller.signal)
 
     if (filtro !== 'todas') {
       query = query.eq('estado', filtro)
@@ -63,13 +64,23 @@ export function useFacturasResidente(filtro: FiltroFactura): UseFacturasResident
         .select('monto')
         .eq('estado', 'pendiente')
         .eq('periodo', periodoActual)
-        .abortSignal(abortRef.current.signal),
+        .abortSignal(controller.signal),
     ])
 
-    if (abortRef.current.signal.aborted) return
+    // Comparamos contra el `controller` capturado (no `abortRef.current`) porque
+    // un cambio de filtro o un re-mount reasigna `abortRef.current`, lo cual
+    // haría que el check del signal nuevo siempre devuelva `!aborted` y el
+    // AbortError de la query previa se filtraría a `setError` (mostrando el
+    // mensaje feo "AbortError: signal is aborted without reason" en la UI).
+    if (controller.signal.aborted) return
 
     if (fetchErr) {
-      setError(fetchErr.message)
+      // Filtrar AbortError defensivamente: si Supabase ya devolvió con un error
+      // de cancelación pero el signal nuevo aún no se ha actualizado (race),
+      // no lo mostramos al usuario — no es un error real, fue un cambio de filtro.
+      const msg = fetchErr.message ?? ''
+      const isAbort = fetchErr.name === 'AbortError' || /abort/i.test(msg)
+      if (!isAbort) setError(msg)
       setLoading(false)
       return
     }
