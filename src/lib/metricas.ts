@@ -54,9 +54,9 @@ export function calcularMediana(valores: number[]): number | null {
   const mitad = Math.floor(ordenados.length / 2)
   if (ordenados.length % 2 === 0) {
     // Promedio de los dos valores centrales (interpolación lineal)
-    return (ordenados[mitad - 1] + ordenados[mitad]) / 2
+    return ((ordenados[mitad - 1] ?? 0) + (ordenados[mitad] ?? 0)) / 2
   }
-  return ordenados[mitad]
+  return ordenados[mitad] ?? null
 }
 
 /**
@@ -74,9 +74,11 @@ export function calcularP95(valores: number[]): number | null {
   const idx = 0.95 * (n - 1)
   const floorIdx = Math.floor(idx)
   const ceilIdx = Math.ceil(idx)
-  if (floorIdx === ceilIdx) return ordenados[floorIdx]
+  if (floorIdx === ceilIdx) return ordenados[floorIdx] ?? null
   const fraccion = idx - floorIdx
-  return ordenados[floorIdx] + fraccion * (ordenados[ceilIdx] - ordenados[floorIdx])
+  const vFloor = ordenados[floorIdx] ?? 0
+  const vCeil = ordenados[ceilIdx] ?? 0
+  return vFloor + fraccion * (vCeil - vFloor)
 }
 
 /**
@@ -109,4 +111,65 @@ export function formatearHoras(horas: number | null): string {
   if (horas < 1) return `${Math.round(horas * 60)} min`
   if (horas < 24) return `${horas.toFixed(1)} h`
   return `${(horas / 24).toFixed(1)} d`
+}
+
+// ─── Tipos para gráficas (HU-KPI-01) ────────────────────────────────────────
+
+/** Un punto de la gráfica de barras horizontales (conteo por tipo de solicitud). */
+export type DatoPorTipo = {
+  tipo: string
+  total: number
+}
+
+/** Un punto de la gráfica de líneas (tendencia mensual de tiempos). */
+export type DatoTendenciaMensual = {
+  /** Formato 'YYYY-MM', ej: '2025-11'. Se formatea a 'Nov' en la UI. */
+  mes: string
+  avg_horas: number | null
+  mediana_horas: number | null
+}
+
+/** Una categoría del top-5 con su total y porcentaje relativo. */
+export type DatoTopCategoria = {
+  categoria: string
+  total: number
+  porcentaje: number
+}
+
+/** Respuesta completa del RPC get_graficas_mantenimiento(). */
+export type GraficasMantenimiento = {
+  por_tipo: DatoPorTipo[]
+  tendencia_mensual: DatoTendenciaMensual[]
+  top_categorias: DatoTopCategoria[]
+}
+
+/** Labels legibles para los tipos de solicitud en las gráficas. */
+export const LABEL_TIPO: Record<string, string> = {
+  mantenimiento: 'Mantenimiento',
+  reparacion: 'Reparación',
+  queja: 'Queja',
+  sugerencia: 'Sugerencia',
+  otro: 'Otro',
+}
+
+/** Labels legibles para las categorías en las gráficas. */
+export const LABEL_CATEGORIA: Record<string, string> = {
+  plomeria: 'Plomería',
+  electricidad: 'Electricidad',
+  limpieza: 'Limpieza',
+  seguridad: 'Seguridad',
+  areas_comunes: 'Áreas comunes',
+  otro: 'Otro',
+}
+
+/**
+ * Convierte 'YYYY-MM' a etiqueta corta del mes en español.
+ * Ej: '2025-11' → 'Nov 25'
+ */
+export function formatearMes(yyyyMM: string): string {
+  const parts = yyyyMM.split('-')
+  const year = parseInt(parts[0] ?? '2000', 10)
+  const month = parseInt(parts[1] ?? '1', 10)
+  const fecha = new Date(year, month - 1, 1)
+  return fecha.toLocaleDateString('es', { month: 'short', year: '2-digit' })
 }

@@ -1,5 +1,5 @@
-// Sprint 7 · PBI-22 · Vista /admin/metricas
-// Panel de KPIs operativos del módulo de mantenimiento.
+// Sprint 7 · PBI-22 · HU-KPI-01 · Vista /admin/metricas
+// Panel de KPIs operativos del módulo de mantenimiento + gráficas Recharts.
 //
 // Criterios de aceptación implementados:
 //   ■ 4 tarjetas KPI: total acumulado, pendientes, en proceso, resueltas hoy.
@@ -8,10 +8,38 @@
 //   ■ Casos de borde: 'Sin datos suficientes' cuando los valores son null.
 //   ■ Solo accesible para admin (ProtectedRoute en App.tsx + RPC verifica RLS).
 //   ■ Indicador visual del último refresh y botón de refresh manual.
+//   ■ [HU-KPI-01] Gráfica de barras horizontales por tipo.
+//   ■ [HU-KPI-01] Gráfica de líneas tendencia mensual (AVG + mediana).
+//   ■ [HU-KPI-01] Top 5 categorías con barras de proporción.
+//   ■ [HU-KPI-01] Recharts cargado con React.lazy — no infla el bundle inicial.
 
+import { lazy, Suspense, useCallback } from 'react'
 import AdminShell from '../../components/admin/AdminShell'
 import { useMetricasMantenimiento } from '../../hooks/useMetricasMantenimiento'
+import { useGraficasMantenimiento } from '../../hooks/useGraficasMantenimiento'
 import { formatearHoras } from '../../lib/metricas'
+import { ErrorBoundary } from '../../components/shared/ErrorBoundary'
+
+// ─── Lazy load de Recharts ──────────────────────────────────────────────────
+// Las gráficas (y Recharts) se descargan solo cuando se visita /admin/metricas.
+// El Suspense muestra un skeleton mientras el chunk se carga por primera vez.
+const GraficaTipoBarra    = lazy(() => import('../../components/admin/GraficasMetricas').then(m => ({ default: m.GraficaTipoBarra })))
+const GraficaTendencia    = lazy(() => import('../../components/admin/GraficasMetricas').then(m => ({ default: m.GraficaTendencia })))
+const GraficaTopCategorias = lazy(() => import('../../components/admin/GraficasMetricas').then(m => ({ default: m.GraficaTopCategorias })))
+
+// Skeleton para el fallback del Suspense mientras Recharts se descarga
+function SkeletonGraficaFallback({ height = 280 }: { height?: number }) {
+  return (
+    <div className="bg-white border border-warm-200 rounded-xl p-5 sm:p-6">
+      <div className="animate-pulse">
+        <div className="w-40 h-4 bg-warm-100 rounded mb-1" />
+        <div className="w-56 h-3 bg-warm-100 rounded mb-5" />
+        <div className="bg-warm-100/60 rounded-lg" style={{ height }} />
+      </div>
+    </div>
+  )
+}
+
 
 // ─── Íconos inline ──────────────────────────────────────────────────────────
 function IconoTotal() {
@@ -162,9 +190,30 @@ function UltimaActualizacion({ iso }: { iso: string | null }) {
 
 // ─── Página principal ─────────────────────────────────────────────────────────
 export default function AdminMetricas() {
-  const { metricas, loading, error, refrescar, ultimaActualizacion } = useMetricasMantenimiento()
+  const {
+    metricas,
+    loading,
+    error: errorMetricas,
+    refrescar: refrescarMetricas,
+    ultimaActualizacion,
+  } = useMetricasMantenimiento()
+
+  const {
+    graficas,
+    loading: loadingGraficas,
+    error: errorGraficas,
+    refrescar: refrescarGraficas,
+  } = useGraficasMantenimiento()
 
   const t = metricas?.tiempos_resolucion
+
+  // Refresca tanto las métricas básicas como las gráficas de Recharts
+  const refrescarTodo = useCallback(() => {
+    void refrescarMetricas()
+    void refrescarGraficas()
+  }, [refrescarMetricas, refrescarGraficas])
+
+  const cargando = loading || loadingGraficas
 
   // Botón de refresh manual en el header
   const actions = (
@@ -173,12 +222,12 @@ export default function AdminMetricas() {
       <button
         id="btn-refrescar-metricas"
         type="button"
-        onClick={refrescar}
-        disabled={loading}
+        onClick={refrescarTodo}
+        disabled={cargando}
         className="h-9 px-3 flex items-center gap-1.5 text-sm font-medium text-primary-700 border border-warm-200 rounded-lg hover:bg-warm-50 transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-        title="Refrescar métricas"
+        title="Refrescar métricas y gráficas"
       >
-        <IconoRefresh spin={loading} />
+        <IconoRefresh spin={cargando} />
         Refrescar
       </button>
     </div>
@@ -191,14 +240,24 @@ export default function AdminMetricas() {
       actions={actions}
     >
       {/* ── Error ─────────────────────────────────────────────────────────── */}
-      {error && (
+      {(errorMetricas || errorGraficas) && (
         <div
           id="metricas-error"
           role="alert"
-          className="mb-5 p-4 rounded-xl bg-error/10 border border-error/20 text-error text-sm animate-fade-in"
+          className="mb-5 p-4 rounded-xl bg-error/10 border border-error/20 text-error text-sm animate-fade-in flex flex-col gap-3"
         >
-          <p className="font-medium">Error al cargar las métricas</p>
-          <p className="text-xs mt-0.5 opacity-80">{error}</p>
+          {errorMetricas && (
+            <div>
+              <p className="font-medium">Error al cargar los contadores de métricas</p>
+              <p className="text-xs mt-0.5 opacity-80">{errorMetricas}</p>
+            </div>
+          )}
+          {errorGraficas && (
+            <div>
+              <p className="font-medium">Error al cargar los datos de las gráficas</p>
+              <p className="text-xs mt-0.5 opacity-80">{errorGraficas}</p>
+            </div>
+          )}
         </div>
       )}
 
@@ -254,7 +313,7 @@ export default function AdminMetricas() {
       </section>
 
       {/* ── Tiempos de resolución ──────────────────────────────────────────── */}
-      <section aria-label="Tiempos de resolución" className="bg-white border border-warm-200 rounded-xl p-5 sm:p-6 animate-fade-in delay-5">
+      <section aria-label="Tiempos de resolución" className="bg-white border border-warm-200 rounded-xl p-5 sm:p-6 animate-fade-in delay-5 mb-6">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-9 h-9 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
             <IconoTiempo />
@@ -304,6 +363,66 @@ export default function AdminMetricas() {
         </div>
       </section>
 
+      {/* ── Gráficas HU-KPI-01 ────────────────────────────────────────────── */}
+      {/* Separador visual */}
+      <div className="flex items-center gap-3 mb-5 animate-fade-in">
+        <div className="flex-1 h-px bg-warm-200" />
+        <span className="text-xs font-semibold uppercase tracking-widest text-warm-400 px-2">Gráficas</span>
+        <div className="flex-1 h-px bg-warm-200" />
+      </div>
+
+      {/* Fila 1: Barras por tipo (izq, 60%) + Tendencia mensual (der, 40%)
+          En móvil se apilan verticalmente. */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 mb-5">
+        {/* Barras horizontales por tipo — span 3 de 5 columnas en lg */}
+        <div className="lg:col-span-3">
+          <ErrorBoundary
+            title="Gráfica de solicitudes por tipo"
+            externalError={errorGraficas}
+            onReset={refrescarGraficas}
+          >
+            <Suspense fallback={<SkeletonGraficaFallback height={220} />}>
+              <GraficaTipoBarra
+                datos={graficas?.por_tipo ?? []}
+                loading={loadingGraficas}
+              />
+            </Suspense>
+          </ErrorBoundary>
+        </div>
+
+        {/* Top 5 categorías — span 2 de 5 columnas en lg */}
+        <div className="lg:col-span-2">
+          <ErrorBoundary
+            title="Top 5 categorías de mantenimiento"
+            externalError={errorGraficas}
+            onReset={refrescarGraficas}
+          >
+            <Suspense fallback={<SkeletonGraficaFallback height={220} />}>
+              <GraficaTopCategorias
+                datos={graficas?.top_categorias ?? []}
+                loading={loadingGraficas}
+              />
+            </Suspense>
+          </ErrorBoundary>
+        </div>
+      </div>
+
+      {/* Fila 2: Tendencia mensual — ancho completo con scroll horizontal en móvil */}
+      <div className="mb-6">
+        <ErrorBoundary
+          title="Tendencia mensual de resolución"
+          externalError={errorGraficas}
+          onReset={refrescarGraficas}
+        >
+          <Suspense fallback={<SkeletonGraficaFallback height={260} />}>
+            <GraficaTendencia
+              datos={graficas?.tendencia_mensual ?? []}
+              loading={loadingGraficas}
+            />
+          </Suspense>
+        </ErrorBoundary>
+      </div>
+
       {/* ── Nota de refresh automático ────────────────────────────────────── */}
       <p className="mt-4 text-center text-xs text-warm-300 animate-fade-in delay-6">
         Los datos se actualizan automáticamente cada 60 segundos mientras el panel esté visible.
@@ -312,3 +431,5 @@ export default function AdminMetricas() {
     </AdminShell>
   )
 }
+
+
