@@ -92,7 +92,7 @@ CREATE POLICY facturas_residente_select
   TO authenticated
   USING (
     residente_id = auth.uid()
-    AND (auth.jwt() -> 'app_metadata' ->> 'rol') = 'residente'
+    AND public.get_user_rol() = 'residente'
   );
 
 -- ADMIN: acceso completo (SELECT + INSERT + UPDATE; no DELETE por auditoría)
@@ -100,20 +100,20 @@ CREATE POLICY facturas_admin_select
   ON public.facturas
   FOR SELECT
   TO authenticated
-  USING ((auth.jwt() -> 'app_metadata' ->> 'rol') = 'admin');
+  USING (public.get_user_rol() = 'admin');
 
 CREATE POLICY facturas_admin_insert
   ON public.facturas
   FOR INSERT
   TO authenticated
-  WITH CHECK ((auth.jwt() -> 'app_metadata' ->> 'rol') = 'admin');
+  WITH CHECK (public.get_user_rol() = 'admin');
 
 CREATE POLICY facturas_admin_update
   ON public.facturas
   FOR UPDATE
   TO authenticated
-  USING  ((auth.jwt() -> 'app_metadata' ->> 'rol') = 'admin')
-  WITH CHECK ((auth.jwt() -> 'app_metadata' ->> 'rol') = 'admin');
+  USING  (public.get_user_rol() = 'admin')
+  WITH CHECK (public.get_user_rol() = 'admin');
 
 -- TÉCNICO: sin política → RLS deniega automáticamente (sin acceso a facturas)
 

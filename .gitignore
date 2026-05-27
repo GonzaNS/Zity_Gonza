@@ -25,6 +25,8 @@ playwright/.cache
 # Snapshots/console logs/screenshots generados por el MCP de Playwright (debug session).
 .playwright-mcp
 sprint7-metricas-funcionando.png
+sprint8-admin-emite-factura.png
+sprint8-residente-facturas.png
 
 # Environment variables
 .env

@@ -21,6 +21,15 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  # Sprint 8 Chore-T: trigger manual para correr la suite contra staging.
+  # Útil para validar el deploy del módulo de Facturación antes de mergear.
+  workflow_dispatch:
+    inputs:
+      target_url:
+        description: 'URL del entorno a testear (default: dev server CI)'
+        required: false
+        default: ''
+        type: string
 
 jobs:
   e2e:
@@ -60,8 +69,13 @@ jobs:
       - name: Run E2E tests
         env:
           CI: 'true'
+          # Sprint 8 Chore-T: si workflow_dispatch trae target_url, lo usa como baseURL
+          # de Playwright. Útil para apuntar a staging sin levantar dev server.
+          E2E_BASE_URL: ${{ inputs.target_url || '' }}
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
+          E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
           E2E_RESIDENTE_EMAIL: ${{ secrets.E2E_RESIDENTE_EMAIL }}
           E2E_RESIDENTE_PASSWORD: ${{ secrets.E2E_RESIDENTE_PASSWORD }}
         run: npm run test:e2e

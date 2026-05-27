@@ -130,5 +130,5 @@ GRANT EXECUTE ON FUNCTION get_metricas_mantenimiento() TO authenticated;
 
 COMMENT ON FUNCTION get_metricas_mantenimiento() IS
   'Sprint 7 · PBI-22 — KPIs operativos del módulo de mantenimiento. '
-  'Solo ejecutable por usuarios con rol=admin (verificado via JWT app_metadata). '
+  'Solo ejecutable por usuarios con rol=admin (verificado via public.get_user_rol). '
   'Devuelve totales por estado + tiempos de resolución (AVG, mediana, P95).';

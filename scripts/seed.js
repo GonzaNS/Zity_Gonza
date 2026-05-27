@@ -220,6 +220,101 @@ async function seedSolicitudes(ids) {
   }
 }
 
+// Sprint 8 · Acción Retro S7 (seed representativo del módulo) —
+// Inserta facturas demo para los 3 residentes activos:
+//   • Mes pasado: 1 luz + 1 agua + 1 pensión, todas pagadas
+//   • Mes actual: 1 luz + 1 agua, pendientes
+// Esto hace que /residente/facturas se vea "real" desde el primer click del demo.
+async function seedFacturas(ids) {
+  console.log('Insertando facturas demo (Sprint 8)...')
+  const residentes = [
+    { uuid: ids['laura@zity-demo.com'], nombre: 'Laura' },
+    { uuid: ids['pedro@zity-demo.com'], nombre: 'Pedro' },
+    { uuid: ids['julia@zity-demo.com'], nombre: 'Julia' },
+  ].filter(r => r.uuid)
+
+  if (residentes.length === 0) {
+    console.warn('  Faltan IDs de residentes; se omite seed de facturas')
+    return
+  }
+
+  // Helper: 'YYYY-MM' para un mes con offset desde el actual.
+  function periodoConOffset(monthsAgo) {
+    const d = new Date()
+    d.setMonth(d.getMonth() - monthsAgo)
+    return d.toISOString().slice(0, 7)
+  }
+  // Helper: último día del mes en 'YYYY-MM-DD'.
+  function ultimoDiaDelMes(periodo) {
+    const [y, m] = periodo.split('-').map(Number)
+    const ultimo = new Date(y, m, 0)
+    return ultimo.toISOString().split('T')[0]
+  }
+
+  const periodoActual = periodoConOffset(0)
+  const periodoPasado = periodoConOffset(1)
+
+  // Plantillas: tipo, monto (variado por residente para que el desglose se vea real)
+  const PLANTILLAS_PASADO = [
+    { tipo: 'luz',     montos: [120, 95, 145] },
+    { tipo: 'agua',    montos: [40, 35, 42] },
+    { tipo: 'pension', montos: [800, 800, 800] },
+  ]
+  const PLANTILLAS_ACTUAL = [
+    { tipo: 'luz',  montos: [135, 105, 160] },
+    { tipo: 'agua', montos: [45, 38, 48] },
+  ]
+
+  let creadas = 0
+  let omitidas = 0
+
+  // Mes pasado: pagadas
+  for (let i = 0; i < residentes.length; i++) {
+    for (const tpl of PLANTILLAS_PASADO) {
+      const fila = {
+        residente_id:  residentes[i].uuid,
+        tipo:          tpl.tipo,
+        monto:         tpl.montos[i],
+        periodo:       periodoPasado,
+        fecha_emision: `${periodoPasado}-01`,
+        vencimiento:   ultimoDiaDelMes(periodoPasado),
+        estado:        'pagada',
+      }
+      const { error } = await supabase.from('facturas').insert(fila)
+      if (error) {
+        if (error.code === '23505') { omitidas++; continue }
+        console.error(`  Error factura ${tpl.tipo}/${residentes[i].nombre}/${periodoPasado}:`, error.message)
+      } else {
+        creadas++
+      }
+    }
+  }
+
+  // Mes actual: pendientes
+  for (let i = 0; i < residentes.length; i++) {
+    for (const tpl of PLANTILLAS_ACTUAL) {
+      const fila = {
+        residente_id:  residentes[i].uuid,
+        tipo:          tpl.tipo,
+        monto:         tpl.montos[i],
+        periodo:       periodoActual,
+        fecha_emision: `${periodoActual}-01`,
+        vencimiento:   ultimoDiaDelMes(periodoActual),
+        estado:        'pendiente',
+      }
+      const { error } = await supabase.from('facturas').insert(fila)
+      if (error) {
+        if (error.code === '23505') { omitidas++; continue }
+        console.error(`  Error factura ${tpl.tipo}/${residentes[i].nombre}/${periodoActual}:`, error.message)
+      } else {
+        creadas++
+      }
+    }
+  }
+
+  console.log(`  ✓ ${creadas} facturas creadas (${omitidas} ya existían y se omitieron)`)
+}
+
 // Sprint 6 (--notify) — encola 10 notificaciones iniciales por residente activo
 // del seed, para demostrar el centro de notificaciones y el Realtime en la Review.
 // Usa service_role (policy notificaciones_insert_service_role).
@@ -264,6 +359,8 @@ async function main() {
   const adminId = ids['carlos@zity-demo.com']
   if (adminId) await seedInvitacion(adminId)
   await seedSolicitudes(ids)
+  // Sprint 8 — facturas demo (mes pasado pagadas + mes actual pendientes)
+  await seedFacturas(ids)
   // Sprint 6 — notificaciones demo opcionales para la Review.
   if (process.argv.includes('--notify')) {
     await seedNotificaciones(ids)

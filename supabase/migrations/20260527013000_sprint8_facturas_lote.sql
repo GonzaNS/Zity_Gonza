@@ -61,13 +61,11 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  v_rol       text;
   v_residente record;
   v_count     integer := 0;
 BEGIN
-  -- 1. Verificación de rol
-  SELECT (auth.jwt() -> 'app_metadata' ->> 'rol') INTO v_rol;
-  IF v_rol IS DISTINCT FROM 'admin' THEN
+  -- 1. Verificación de rol (helper estándar Zity: lee public.usuarios.rol via auth.uid())
+  IF public.get_user_rol() IS DISTINCT FROM 'admin' THEN
     RAISE EXCEPTION 'Acceso denegado: se requiere rol admin'
       USING ERRCODE = '42501';
   END IF;
