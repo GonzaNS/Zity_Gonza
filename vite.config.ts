@@ -8,6 +8,11 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: './src/test/setup.ts',
+    // Sprint 7 chore-T — los tests E2E de Playwright viven en `e2e/` y se corren
+    // con `npm run test:e2e` (Playwright runner, distinto runtime que Vitest).
+    // Sin este exclude, Vitest intentaria importar los .spec.ts de Playwright y
+    // crashea con "test.describe() was not expected to be called here".
+    exclude: ['**/node_modules/**', '**/dist/**', 'e2e/**'],
     // En CI no existe .env, así que sin estos defaults el módulo
     // src/lib/supabase.ts llama a createClient(undefined, …) y todos los
     // tests que importen (directa o transitivamente) ese módulo fallan al

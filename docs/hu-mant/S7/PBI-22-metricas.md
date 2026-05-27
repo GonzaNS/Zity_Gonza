@@ -57,14 +57,15 @@ Como administrador, necesito un panel `/admin/metricas` con los KPIs operativos 
 **Cómo se usa:** El cliente llama `supabase.rpc('get_metricas_mantenimiento')` y recibe directamente el objeto de métricas. No hay múltiples `SELECT` desde el cliente.
 
 **Por qué SECURITY DEFINER:**  
-Supabase usa Row Level Security (RLS) para proteger las tablas. Sin embargo, un admin necesita acceder a datos de todos los usuarios (conteos globales), algo que las RLS restrictivas de las tablas normales impiden. Con `SECURITY DEFINER`, la función corre con los permisos del *owner* (postgres), que sí puede leer todo. El guard de rol se hace manualmente dentro de la función leyendo el JWT del usuario autenticado:
+Supabase usa Row Level Security (RLS) para proteger las tablas. Sin embargo, un admin necesita acceder a datos de todos los usuarios (conteos globales), algo que las RLS restrictivas de las tablas normales impiden. Con `SECURITY DEFINER`, la función corre con los permisos del *owner* (postgres), que sí puede leer todo. El guard de rol se hace manualmente dentro de la función usando el helper estándar del proyecto `get_user_rol()` (que lee `public.usuarios.rol` via `auth.uid()`):
 
 ```sql
-SELECT (auth.jwt() -> 'app_metadata' ->> 'rol') INTO v_rol;
-IF v_rol IS DISTINCT FROM 'admin' THEN
+IF public.get_user_rol() IS DISTINCT FROM 'admin' THEN
   RAISE EXCEPTION '...' USING ERRCODE = '42501';
 END IF;
 ```
+
+> ⚠️ **Nota histórica:** las versiones iniciales de estas migraciones leían el rol desde `auth.jwt() -> 'app_metadata' ->> 'rol'`, lo que estaba mal: el rol de Zity vive en `public.usuarios.rol`, no en `app_metadata`. Corregido en la migración `20260527030000_sprint7_hotfix_role_check.sql`.
 
 **Por qué `REVOKE ALL … FROM PUBLIC` + `GRANT … TO authenticated`:**  
 La combinación garantiza que solo usuarios autenticados pueden invocar la función, y que el JWT de ese usuario siempre estará disponible para la verificación de rol dentro del body. Un anónimo nunca llega al chequeo de rol porque Supabase rechaza la llamada antes.

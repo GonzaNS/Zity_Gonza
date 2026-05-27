@@ -25,7 +25,6 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  v_rol      text;
   v_total    integer;
   v_pendientes integer;
   v_en_proceso integer;
@@ -41,12 +40,10 @@ DECLARE
   v_resueltas_hoy integer;
 BEGIN
   -- ── 1. Verificación de rol ──────────────────────────────────────────────────
-  -- auth.jwt() devuelve el JWT completo; extraemos el rol del claim app_metadata.
-  -- Si el usuario no está autenticado o no es admin → error 403.
-  SELECT (auth.jwt() -> 'app_metadata' ->> 'rol')
-  INTO v_rol;
-
-  IF v_rol IS DISTINCT FROM 'admin' THEN
+  -- get_user_rol() es el helper estándar del proyecto: lee public.usuarios.rol
+  -- via auth.uid(). El rol vive en la tabla `usuarios` (no en JWT app_metadata),
+  -- porque handle_new_user() lo copia de raw_user_meta_data al crear el perfil.
+  IF public.get_user_rol() IS DISTINCT FROM 'admin' THEN
     RAISE EXCEPTION 'Acceso denegado: se requiere rol admin'
       USING ERRCODE = '42501'; -- insufficient_privilege
   END IF;

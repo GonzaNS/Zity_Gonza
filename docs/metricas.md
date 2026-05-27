@@ -138,16 +138,20 @@ Exportación implementada en [`src/components/admin/PopoverExportarCSV.tsx`](../
 
 ## RPCs y permisos
 
-Todos los RPCs del Sprint 7 usan **`SECURITY DEFINER` + verificación manual del rol en JWT**. Esto es el patrón de Zity para operaciones que requieren acceso global (admin) pero no pueden pasar por las RLS restrictivas de las tablas normales.
+Todos los RPCs del Sprint 7 usan **`SECURITY DEFINER` + verificación manual del rol vía `public.get_user_rol()`**. Esto es el patrón de Zity para operaciones que requieren acceso global (admin) pero no pueden pasar por las RLS restrictivas de las tablas normales.
 
 | RPC | Quién puede llamarlo | Qué hace |
 |---|---|---|
-| `get_metricas_mantenimiento()` | rol `admin` (verificado vía `auth.jwt() -> 'app_metadata' ->> 'rol'`) | Devuelve los 4 contadores + tiempos de resolución + `vista_refreshed_at`. |
+| `get_metricas_mantenimiento()` | rol `admin` (verificado vía `public.get_user_rol()`) | Devuelve los 4 contadores + tiempos de resolución + `vista_refreshed_at`. |
 | `get_graficas_mantenimiento()` | rol `admin` | Devuelve los 3 datasets de gráficas leyendo `vw_metricas_solicitudes`. |
 | `refresh_metricas_on_demand()` | cualquier autenticado, pero solo refresca si la vista tiene >1h | Llamado por `pg_cron` y como fallback desde el frontend. |
 | `export_solicitudes_csv(f_inicio, f_fin)` | rol `admin` | Devuelve filas formateadas para `.csv()` con cabeceras en español. |
 
-Todos hacen `REVOKE ALL ... FROM PUBLIC` + `GRANT EXECUTE ... TO authenticated` y rechazan con `RAISE EXCEPTION ... USING ERRCODE = '42501'` si el JWT no contiene rol admin.
+`get_user_rol()` es un helper SQL `STABLE SECURITY DEFINER` que retorna `SELECT rol FROM public.usuarios WHERE id = auth.uid()`. Esto refleja el modelo de datos real de Zity: el rol vive en la tabla `usuarios` (no en `auth.jwt()->'app_metadata'`), porque el trigger `handle_new_user()` copia `raw_user_meta_data.rol` a `public.usuarios.rol` al crearse el perfil.
+
+Todos los RPCs hacen `REVOKE ALL ... FROM PUBLIC` + `GRANT EXECUTE ... TO authenticated` y rechazan con `RAISE EXCEPTION ... USING ERRCODE = '42501'` si el rol resuelto no es admin.
+
+> ⚠️ **Bug histórico (corregido):** la versión inicial de las 4 migraciones del Sprint 7 leía el rol de `auth.jwt() -> 'app_metadata' ->> 'rol'`, que retorna `NULL` en Zity. El admin Carlos veía "Acceso denegado" al abrir `/admin/metricas`. Corregido en la migración `20260527030000_sprint7_hotfix_role_check.sql`.
 
 ---
 

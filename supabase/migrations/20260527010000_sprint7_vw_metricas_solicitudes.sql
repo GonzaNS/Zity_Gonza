@@ -209,7 +209,6 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  v_rol            text;
   v_total          integer;
   v_pendientes     integer;
   v_en_proceso     integer;
@@ -218,9 +217,8 @@ DECLARE
   v_tiempos        jsonb;
   v_refreshed_at   timestamptz;
 BEGIN
-  -- 1. Verificación de rol
-  SELECT (auth.jwt() -> 'app_metadata' ->> 'rol') INTO v_rol;
-  IF v_rol IS DISTINCT FROM 'admin' THEN
+  -- 1. Verificación de rol (get_user_rol lee public.usuarios.rol via auth.uid())
+  IF public.get_user_rol() IS DISTINCT FROM 'admin' THEN
     RAISE EXCEPTION 'Acceso denegado: se requiere rol admin'
       USING ERRCODE = '42501';
   END IF;
@@ -276,12 +274,10 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  v_rol  text;
-  v_row  vw_metricas_solicitudes%ROWTYPE;
+  v_row vw_metricas_solicitudes%ROWTYPE;
 BEGIN
-  -- 1. Verificación de rol
-  SELECT (auth.jwt() -> 'app_metadata' ->> 'rol') INTO v_rol;
-  IF v_rol IS DISTINCT FROM 'admin' THEN
+  -- 1. Verificación de rol (get_user_rol lee public.usuarios.rol via auth.uid())
+  IF public.get_user_rol() IS DISTINCT FROM 'admin' THEN
     RAISE EXCEPTION 'Acceso denegado: se requiere rol admin'
       USING ERRCODE = '42501';
   END IF;

@@ -42,6 +42,55 @@ npm run dev             # arranca la app en http://localhost:5173
 
 ---
 
+## ✅ Lista de pasos manuales para cerrar el Sprint 7 al 100%
+
+Estos son los pasos que **tú** debes hacer (no se automatizan en el repo):
+
+### 🔴 Obligatorios (sin esto el panel no carga)
+
+- [ ] **Aplicar las 5 migraciones del Sprint 7 en Supabase** (ya hechas vía MCP en este chat — si reinicias el proyecto, aplica los archivos de `supabase/migrations/` con prefijo `sprint7_*` en orden cronológico). Lista:
+  1. `20260526183900_sprint7_metricas_mantenimiento.sql`
+  2. `20260526190700_sprint7_graficas_mantenimiento.sql`
+  3. `20260526201500_sprint7_export_csv.sql`
+  4. `20260527010000_sprint7_vw_metricas_solicitudes.sql`
+  5. `20260527030000_sprint7_hotfix_role_check.sql` (corrige el `auth.jwt()->'app_metadata'` que retornaba NULL)
+
+### 🟡 Recomendados (mejoran la operación pero no rompen nada)
+
+- [ ] **Activar `pg_cron` en Supabase** (3 clics): Dashboard → Database → Extensions → buscar `pg_cron` → Enable. Luego en SQL Editor:
+  ```sql
+  SELECT cron.schedule(
+    'refresh-metricas-hourly',
+    '0 * * * *',
+    $$SELECT refresh_metricas_on_demand()$$
+  );
+  ```
+  Sin esto, el panel funciona igual gracias al **fallback on-demand** del hook (refresca al abrir si la vista tiene >1h).
+
+- [ ] **Instalar binarios de Chromium para Playwright** (una sola vez, ~140 MB):
+  ```bash
+  npm run test:e2e:install
+  ```
+  Sin esto, no puedes correr `npm run test:e2e` localmente. CI lo descarga automáticamente.
+
+### 🔵 Opcionales (solo si quieres CI funcionando)
+
+- [ ] **Configurar GitHub Secrets** para que el workflow `.github/workflows/e2e.yml` pase:
+  - `VITE_SUPABASE_URL` → `https://bhficjchwnnyjnenbhom.supabase.co`
+  - `VITE_SUPABASE_ANON_KEY` → la clave anónima del proyecto
+  - `E2E_RESIDENTE_EMAIL` → `laura@zity-demo.com` (opcional, hay default)
+  - `E2E_RESIDENTE_PASSWORD` → `Residente1!` (opcional, hay default)
+
+  Settings → Secrets and variables → Actions → New repository secret.
+
+- [ ] **(Optional) Corregir lint warnings de regla `react-hooks/set-state-in-effect`** en `useMetricasMantenimiento.ts`, `useGraficasMantenimiento.ts` (de Sprint 7) y `useFacturasResidente.ts`, `Facturas.tsx` (de Sprint 8). Son falsos positivos del plugin v7+ pero ensucian la salida de `npm run lint`.
+
+### ⚠️ Fuera de scope del Sprint 7 (pero te van a aparecer si abres otros menús)
+
+- [ ] **Sprint 8 (Facturación) tampoco está aplicado en Supabase.** Las migraciones `sprint8_*` están en el repo pero no se han corrido. Si abres `/admin/facturacion` o `/residente/facturas` verás errores. Si quieres aplicarlas, hazlo (ojo: también tienen el mismo bug de `app_metadata`; el equipo de Sprint 8 debe replicar el hotfix).
+
+---
+
 ## El recorrido de 5 pasos
 
 ### 1. Abre el panel de métricas

@@ -25,14 +25,10 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
-DECLARE
-  v_rol text;
 BEGIN
   -- ── 1. Verificación de rol ──────────────────────────────────────────────────
-  SELECT (auth.jwt() -> 'app_metadata' ->> 'rol')
-  INTO v_rol;
-
-  IF v_rol IS DISTINCT FROM 'admin' THEN
+  -- get_user_rol() lee public.usuarios.rol via auth.uid() — patrón estándar Zity.
+  IF public.get_user_rol() IS DISTINCT FROM 'admin' THEN
     RAISE EXCEPTION 'Acceso denegado: se requiere rol admin'
       USING ERRCODE = '42501';
   END IF;
