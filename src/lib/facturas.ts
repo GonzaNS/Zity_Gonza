@@ -86,8 +86,17 @@ export function formatearPeriodo(periodo: string): string {
 /**
  * Determina si una factura está vencida (según la fecha actual del cliente).
  * Útil para marcar visualmente facturas que aún no actualizaron su estado en BD.
+ *
+ * Comparamos strings 'YYYY-MM-DD' directamente para evitar el bug de timezone:
+ * `new Date("2026-05-30")` se parsea como UTC medianoche → en zonas UTC-5/UTC-6
+ * la factura aparecería vencida desde las 6-7 PM del día anterior.
+ * Al comparar como string con la fecha local evitamos ese desfase.
  */
 export function estaVencida(factura: Pick<Factura, 'estado' | 'vencimiento'>): boolean {
   if (factura.estado === 'pagada') return false
-  return new Date(factura.vencimiento) < new Date()
+  // Obtener la fecha local como 'YYYY-MM-DD' (sin conversión UTC)
+  const hoy = new Date()
+  const hoyStr = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`
+  // factura.vencimiento ya viene como 'YYYY-MM-DD' desde Postgres
+  return factura.vencimiento < hoyStr
 }

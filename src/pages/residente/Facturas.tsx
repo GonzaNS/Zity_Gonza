@@ -9,9 +9,10 @@
 //   • Scroll infinito: carga de 25 en 25.
 //   • RLS garantiza que solo se muestren facturas del usuario autenticado.
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate, Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
+import { supabase } from '../../lib/supabase'
 import CampanaNotificaciones from '../../components/shared/CampanaNotificaciones'
 import {
   useFacturasResidente,
@@ -82,22 +83,44 @@ export default function ResidenteFacturas() {
   } = useFacturasResidente(filtro)
 
   // Sprint 8 · HU-FACT-05 — Deep link desde la campana de notificaciones.
-  // Si la URL tiene ?id=<factura_id>, busca la factura en la lista y la preselecciona.
-  // Se ejecuta una sola vez cuando las facturas se han cargado.
-  useEffect(() => {
-    const idParam = searchParams.get('id')
-    if (!idParam || loading || seleccionada) return
-    const target = facturas.find(f => f.id === idParam)
-    if (target) {
-      setSeleccionada(target)
-      // Limpiar el query param para no re-activar el efecto
+  // Si la URL tiene ?id=<factura_id>, busca la factura en la lista cargada;
+  // si no está (puede estar en páginas posteriores del scroll infinito),
+  // la busca directamente en Supabase para garantizar que el detalle se abra.
+  const resolverDeepLink = useCallback(async (idParam: string) => {
+    // 1. Buscar en memoria (caso ideal, evita un round-trip)
+    const enMemoria = facturas.find(f => f.id === idParam)
+    if (enMemoria) {
+      setSeleccionada(enMemoria)
+      setSearchParams(prev => {
+        const next = new URLSearchParams(prev)
+        next.delete('id')
+        return next
+      }, { replace: true })
+      return
+    }
+
+    // 2. Fallback: query directa a Supabase (factura puede estar en otra página)
+    const { data } = await supabase
+      .from('facturas')
+      .select('*')
+      .eq('id', idParam)
+      .maybeSingle()
+
+    if (data) {
+      setSeleccionada(data as Factura)
       setSearchParams(prev => {
         const next = new URLSearchParams(prev)
         next.delete('id')
         return next
       }, { replace: true })
     }
-  }, [searchParams, facturas, loading, seleccionada, setSearchParams])
+  }, [facturas, setSearchParams])
+
+  useEffect(() => {
+    const idParam = searchParams.get('id')
+    if (!idParam || loading || seleccionada) return
+    void resolverDeepLink(idParam)
+  }, [searchParams, loading, seleccionada, resolverDeepLink])
 
   // Ref para el observador de scroll infinito
   const centinelaRef = useRef<HTMLDivElement | null>(null)

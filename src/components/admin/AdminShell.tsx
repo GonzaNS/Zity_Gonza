@@ -254,7 +254,7 @@ export default function AdminShell({ children, title, subtitle, actions }: Props
       {/* Main */}
       <div className="flex-1 lg:ml-64 pt-14 lg:pt-0">
         <div className="px-4 sm:px-6 lg:px-10 py-6 sm:py-8 lg:py-10 max-w-7xl mx-auto w-full">
-          <div className="mb-6 sm:mb-8 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between animate-fade-in">
+          <div className="mb-6 sm:mb-8 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between animate-fade-in relative z-20">
             <div className="min-w-0">
               <h1 className="font-display text-xl sm:text-2xl lg:text-3xl font-semibold text-primary-900 tracking-tight">
                 {title}
@@ -263,7 +263,7 @@ export default function AdminShell({ children, title, subtitle, actions }: Props
                 <p className="mt-1 text-sm text-warm-400">{subtitle}</p>
               )}
             </div>
-            {actions && <div className="shrink-0">{actions}</div>}
+            {actions && <div className="shrink-0 overflow-visible">{actions}</div>}
           </div>
 
           {children}
