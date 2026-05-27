@@ -15,6 +15,14 @@ dist-ssr
 # Reportes de cobertura de tests (Vitest v8) — se generan localmente y en CI
 coverage
 
+# Sprint 7 · Chore-T — artefactos de Playwright (E2E)
+# Reports/results se generan en cada corrida (HTML, screenshots, videos, traces).
+# Los binarios de Chromium se descargan en ~/.cache/ms-playwright (fuera del repo).
+playwright-report
+test-results
+e2e-results
+playwright/.cache
+
 # Environment variables
 .env
 .env.local

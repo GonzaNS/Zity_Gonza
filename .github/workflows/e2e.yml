@@ -1,0 +1,79 @@
+# Sprint 7 · Chore-T — Workflow de Playwright (E2E)
+#
+# Filosofía (PDF Sprint 7, riesgo R4):
+#   - Solo Chromium como gate de PR (sin matriz Firefox/Webkit).
+#   - Cada Sprint funcional añade 1 E2E nuevo como chore (no protagonista).
+#   - Mantener el consumo de minutos del free tier de GitHub Actions bajo control.
+#
+# Secrets requeridos en el repo (Settings → Secrets and variables → Actions):
+#   - VITE_SUPABASE_URL       → URL pública del proyecto Supabase
+#   - VITE_SUPABASE_ANON_KEY   → Clave anónima de Supabase
+#   - E2E_RESIDENTE_EMAIL      → (opcional) email del residente de prueba (default: laura@zity-demo.com)
+#   - E2E_RESIDENTE_PASSWORD   → (opcional) password del residente de prueba (default: Residente1!)
+#
+# Si los secrets no están configurados el step "Run E2E tests" falla con un
+# mensaje claro; documentado en /docs/testing/e2e.md.
+
+name: E2E (Playwright)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  e2e:
+    name: Chromium · crear-solicitud
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Detección temprana de secrets — falla rápido con un mensaje claro si no
+      # están configurados, en lugar de que el test falle en login sin contexto.
+      - name: Check secrets
+        env:
+          SUPA_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPA_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPA_URL" ] || [ -z "$SUPA_KEY" ]; then
+            echo "::error::Faltan secrets VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY."
+            echo "::error::Configúralos en Settings → Secrets and variables → Actions."
+            echo "::error::Ver /docs/testing/e2e.md para más detalle."
+            exit 1
+          fi
+          echo "Secrets de Supabase presentes."
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        env:
+          CI: 'true'
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          E2E_RESIDENTE_EMAIL: ${{ secrets.E2E_RESIDENTE_EMAIL }}
+          E2E_RESIDENTE_PASSWORD: ${{ secrets.E2E_RESIDENTE_PASSWORD }}
+        run: npm run test:e2e
+
+      # Subir HTML report + traces SOLO si algo falló, para inspección manual.
+      # `if: failure()` evita inflar el storage del free tier en corridas verdes.
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
