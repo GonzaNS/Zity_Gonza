@@ -20,7 +20,8 @@ const AdminDashboard = lazy(() => import('./pages/AdminDashboard'))
 const AdminUsuarios = lazy(() => import('./pages/admin/Usuarios'))
 const AdminSolicitudes = lazy(() => import('./pages/admin/Solicitudes'))
 const AdminAuditoria = lazy(() => import('./pages/admin/Auditoria'))
-const AdminMetricas = lazy(() => import('./pages/admin/Metricas'))  // Sprint 7 · PBI-22
+const AdminMetricas = lazy(() => import('./pages/admin/Metricas'))     // Sprint 7 · PBI-22
+const AdminFacturacion = lazy(() => import('./pages/admin/Facturacion')) // Sprint 8 · HU-FACT-02
 const ResidenteDashboard = lazy(() => import('./pages/ResidenteDashboard'))
 const TecnicoDashboard = lazy(() => import('./pages/TecnicoDashboard'))
 const Perfil = lazy(() => import('./pages/Perfil'))
@@ -92,6 +93,12 @@ export default function App() {
             <Route path="/admin/metricas" element={
               <ProtectedRoute allowedRoles={['admin']}>
                 <AdminMetricas />
+              </ProtectedRoute>
+            } />
+            {/* Sprint 8 · HU-FACT-02 — Emisión de facturas individual y en lote */}
+            <Route path="/admin/facturacion" element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminFacturacion />
               </ProtectedRoute>
             } />
             <Route path="/residente" element={

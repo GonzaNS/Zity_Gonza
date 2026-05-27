@@ -31,7 +31,7 @@ EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 CREATE TABLE IF NOT EXISTS public.facturas (
   id            uuid                    PRIMARY KEY DEFAULT gen_random_uuid(),
   residente_id  uuid                    NOT NULL
-                  REFERENCES public.perfiles(id) ON DELETE CASCADE,
+                  REFERENCES public.usuarios(id) ON DELETE CASCADE,
   tipo          public.factura_tipo     NOT NULL,
   monto         numeric(10,2)          NOT NULL CHECK (monto >= 0),
   periodo       text                   NOT NULL
