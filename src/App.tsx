@@ -20,6 +20,7 @@ const AdminDashboard = lazy(() => import('./pages/AdminDashboard'))
 const AdminUsuarios = lazy(() => import('./pages/admin/Usuarios'))
 const AdminSolicitudes = lazy(() => import('./pages/admin/Solicitudes'))
 const AdminAuditoria = lazy(() => import('./pages/admin/Auditoria'))
+const AdminMetricas = lazy(() => import('./pages/admin/Metricas'))  // Sprint 7 · PBI-22
 const ResidenteDashboard = lazy(() => import('./pages/ResidenteDashboard'))
 const TecnicoDashboard = lazy(() => import('./pages/TecnicoDashboard'))
 const Perfil = lazy(() => import('./pages/Perfil'))
@@ -85,6 +86,12 @@ export default function App() {
             <Route path="/admin/auditoria" element={
               <ProtectedRoute allowedRoles={['admin']}>
                 <AdminAuditoria />
+              </ProtectedRoute>
+            } />
+            {/* Sprint 7 · PBI-22 — Panel de métricas operativas */}
+            <Route path="/admin/metricas" element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminMetricas />
               </ProtectedRoute>
             } />
             <Route path="/residente" element={

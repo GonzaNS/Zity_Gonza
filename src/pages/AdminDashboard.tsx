@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import AdminShell from '../components/admin/AdminShell'
+import PopoverExportarCSV from '../components/admin/PopoverExportarCSV'
 import { supabase } from '../lib/supabase'
 
 type StatKey = 'pendientes' | 'en_progreso' | 'resueltas_mes'
@@ -96,6 +97,7 @@ export default function AdminDashboard() {
     <AdminShell
       title="Panel de administración"
       subtitle={`Bienvenido, ${profile?.nombre ?? 'admin'}. Aquí gestionas el edificio.`}
+      actions={<PopoverExportarCSV />}
     >
       {/* Stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 animate-fade-in delay-1">
