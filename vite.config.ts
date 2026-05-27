@@ -4,6 +4,24 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  // Sprint 7 · Hotfix Recharts + es-toolkit pre-bundle
+  //
+  // Problema: Recharts 3.8.1 importa funciones de `es-toolkit/compat/*` con default
+  // import (ej. `import get from 'es-toolkit/compat/get'`) pero los archivos `.mjs`
+  // de es-toolkit solo tienen named exports (`export { get }`). El interop CJS↔ESM
+  // de Vite falla de dos maneras según la config:
+  //   - Sin optimizeDeps: SyntaxError "does not provide an export named 'default'"
+  //   - Con exclude: misma cosa, peor.
+  //   - Con pre-bundle por defecto: bug `require_isUnsafeProperty is not a function`
+  //     por un wrap CJS recursivo que produce esbuild.
+  //
+  // Fix: forzar a Vite a pre-bundlear recharts JUNTO con es-toolkit usando esbuild
+  // (que sí maneja el interop bien cuando los procesa juntos). El `needsInterop`
+  // le dice a Vite que es-toolkit es CJS internamente y debe envolverse para
+  // exponer default exports a los consumidores ESM.
+  optimizeDeps: {
+    include: ['recharts', 'es-toolkit', 'es-toolkit/compat'],
+  },
   test: {
     environment: 'jsdom',
     globals: true,

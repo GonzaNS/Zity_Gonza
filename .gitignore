@@ -22,6 +22,9 @@ playwright-report
 test-results
 e2e-results
 playwright/.cache
+# Snapshots/console logs/screenshots generados por el MCP de Playwright (debug session).
+.playwright-mcp
+sprint7-metricas-funcionando.png
 
 # Environment variables
 .env
