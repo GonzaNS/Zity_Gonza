@@ -18,7 +18,7 @@ describe('formatearMonto', () => {
     const out = formatearMonto(1500.5)
     // Intl puede usar caracteres no-ASCII para los separadores según el runtime.
     // Verificamos las partes esenciales en lugar de comparar string exacto.
-    expect(out).toMatch(/1[\s ,.]?500\.50/)
+    expect(out).toMatch(/1[\s,.]?500\.50/)
     expect(out).toMatch(/\$/)
   })
 

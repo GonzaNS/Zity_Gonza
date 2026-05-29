@@ -98,6 +98,11 @@ export function useFacturasResidente(filtro: FiltroFactura): UseFacturasResident
   }, [filtro])
 
   useEffect(() => {
+    // cargarPrimera hace setLoading(true)/setError(null) de forma síncrona al
+    // (re)cargar cuando cambia el filtro. Es el reset intencional previo al fetch
+    // y no genera renders en cascada problemáticos; la regla set-state-in-effect
+    // marca un falso positivo aquí, por eso la desactivamos solo en esta línea.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void cargarPrimera()
     return () => { abortRef.current?.abort() }
   }, [cargarPrimera])

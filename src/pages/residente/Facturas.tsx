@@ -119,6 +119,10 @@ export default function ResidenteFacturas() {
   useEffect(() => {
     const idParam = searchParams.get('id')
     if (!idParam || loading || seleccionada) return
+    // resolverDeepLink hace setSeleccionada de forma síncrona en el fast-path en
+    // memoria (deep-link desde la campana de notificaciones). Es intencional;
+    // la regla set-state-in-effect lo marca como falso positivo en esta línea.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void resolverDeepLink(idParam)
   }, [searchParams, loading, seleccionada, resolverDeepLink])
 

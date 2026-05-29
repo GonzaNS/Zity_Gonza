@@ -69,9 +69,10 @@ export default function PopoverExportarCSV() {
       window.URL.revokeObjectURL(url)
       
       setAbierto(false)
-    } catch (err: any) {
+    } catch (err) {
       console.error(err)
-      setError(err.message || 'Ocurrió un error de conexión con la base de datos al exportar.')
+      const msg = err instanceof Error && err.message ? err.message : 'Ocurrió un error de conexión con la base de datos al exportar.'
+      setError(msg)
     } finally {
       setDescargando(false)
     }

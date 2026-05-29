@@ -15,6 +15,7 @@ import {
   calcularP95,
   calcularEstadisticosHoras,
   formatearHoras,
+  formatearMes,
   P95_MIN_MUESTRAS,
 } from '../../lib/metricas'
 
@@ -119,6 +120,13 @@ describe('calcularP95', () => {
 
     expect(conOutlier).toBeGreaterThan(sinOutlier)
   })
+
+  it('idx entero (n=21) → toma el valor exacto sin interpolar', () => {
+    // idx = 0.95 * (21 - 1) = 19 (entero) → floorIdx === ceilIdx, retorna
+    // directamente ordenados[19] sin interpolación lineal.
+    const valores = Array.from({ length: 21 }, (_, i) => i + 1) // [1..21]
+    expect(calcularP95(valores)).toBe(20) // ordenados[19] = 20
+  })
 })
 
 // ─── calcularEstadisticosHoras (integración de los tres) ─────────────────────
@@ -182,5 +190,27 @@ describe('formatearHoras', () => {
 
   it('exactamente 24 h → "1.0 d"', () => {
     expect(formatearHoras(24)).toBe('1.0 d')
+  })
+})
+
+// ─── formatearMes ─────────────────────────────────────────────────────────────
+// Aserciones robustas al runtime: toLocaleDateString('es', …) puede variar el
+// texto del mes según el ICU disponible, así que verificamos estructura
+// (año de 2 dígitos, no-vacío, diferencias entre meses) en vez de strings exactos.
+describe('formatearMes', () => {
+  it('formatea "YYYY-MM" a etiqueta corta con año de 2 dígitos', () => {
+    const out = formatearMes('2025-11')
+    expect(typeof out).toBe('string')
+    expect(out.length).toBeGreaterThan(0)
+    expect(out).toContain('25')
+  })
+
+  it('meses distintos producen etiquetas distintas', () => {
+    expect(formatearMes('2025-01')).not.toBe(formatearMes('2025-07'))
+  })
+
+  it('sin parte de mes → usa enero por defecto (rama de fallback ?? "1")', () => {
+    // 'YYYY'.split('-') no produce parts[1]; aplica el fallback `?? '1'` (enero).
+    expect(formatearMes('2025')).toBe(formatearMes('2025-01'))
   })
 })

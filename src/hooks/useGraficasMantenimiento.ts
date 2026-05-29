@@ -53,7 +53,10 @@ export function useGraficasMantenimiento(): UseGraficasMantenimientoResult {
   }, [])
 
   useEffect(() => {
-    setLoading(true)
+    // Carga inicial. `loading` ya nace en true y el effect corre una sola vez
+    // (fetchGraficas es estable). fetchGraficas hace setState al resolver; la regla
+    // set-state-in-effect marca la llamada como falso positivo (carga legítima en mount).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void fetchGraficas()
   }, [fetchGraficas])
 
