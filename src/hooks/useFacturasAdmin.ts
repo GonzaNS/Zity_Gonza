@@ -40,12 +40,13 @@ export function useFacturasAdmin(filtro: FiltroFactura, periodo: string): UseFac
     setLoading(true)
     setError(null)
 
-    // Dos FKs facturas→usuarios (residente_id y registrado_por): hay que
-    // desambiguar el embed indicando el nombre del constraint del residente.
+    // Dos FKs facturas→usuarios (residente_id y registrado_por): se desambigua
+    // el embed por la COLUMNA (residente_id) — más robusto que el nombre del
+    // constraint (que difiere entre la migración y la BD real).
     let query = supabase
       .from('facturas')
       .select(
-        '*, residente:usuarios!facturas_residente_id_usuarios_fkey(nombre, apellido, departamento, piso)',
+        '*, residente:usuarios!residente_id(nombre, apellido, departamento, piso)',
       )
       .order('vencimiento', { ascending: true })
       .order('created_at', { ascending: false })
@@ -60,6 +61,10 @@ export function useFacturasAdmin(filtro: FiltroFactura, periodo: string): UseFac
       obtenerTotalesPeriodo(periodo),
     ])
 
+    // Los totales se calculan en servidor de forma independiente del listado:
+    // se muestran aunque el listado falle.
+    setTotales(totalesPeriodo)
+
     if (fetchErr) {
       setError(fetchErr.message)
       setLoading(false)
@@ -67,7 +72,6 @@ export function useFacturasAdmin(filtro: FiltroFactura, periodo: string): UseFac
     }
 
     setFacturas((data ?? []) as unknown as FacturaAdmin[])
-    setTotales(totalesPeriodo)
     setLoading(false)
   }, [filtro, periodo])
 
