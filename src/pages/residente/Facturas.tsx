@@ -304,7 +304,7 @@ export default function ResidenteFacturas() {
       </main>
 
       {errorDescarga && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-full shadow-lg text-sm font-medium animate-fade-in text-white bg-error">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] px-5 py-3 rounded-full shadow-lg text-sm font-medium animate-fade-in text-white bg-error">
           ✗ {errorDescarga}
         </div>
       )}
@@ -507,7 +507,7 @@ function DetalleFactura({
       </main>
 
       {errorDescarga && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-full shadow-lg text-sm font-medium animate-fade-in text-white bg-error">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] px-5 py-3 rounded-full shadow-lg text-sm font-medium animate-fade-in text-white bg-error">
           ✗ {errorDescarga}
         </div>
       )}

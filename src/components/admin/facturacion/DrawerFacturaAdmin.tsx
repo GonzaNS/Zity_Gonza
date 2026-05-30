@@ -3,7 +3,8 @@
 // registrar_pago_factura (idempotente y atómica). El botón se deshabilita tras
 // el primer click para evitar doble pago (R3).
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
+import { useModalBehavior } from '../../../hooks/useModalBehavior'
 import {
   LABEL_FACTURA_TIPO,
   LABEL_FACTURA_ESTADO,
@@ -41,12 +42,8 @@ export default function DrawerFacturaAdmin({ factura, onClose, onPagoRegistrado 
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Cerrar con Escape (accesibilidad, patrón del proyecto).
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) { if (e.key === 'Escape' && !enviando) onClose() }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [onClose, enviando])
+  // Escape + bloqueo de scroll del body (patrón estándar del proyecto).
+  useModalBehavior(onClose, enviando)
 
   const estadoVisual = estaVencida(factura) && factura.estado === 'pendiente' ? 'vencida' : factura.estado
   const puedePagar = puedeMarcarsePagada(factura.estado)
@@ -73,8 +70,9 @@ export default function DrawerFacturaAdmin({ factura, onClose, onPagoRegistrado 
         onClick={() => { if (!enviando) onClose() }}
       />
       <aside
-        className="fixed right-0 top-0 z-50 h-full w-full max-w-md bg-white shadow-2xl flex flex-col animate-fade-in-down"
+        className="fixed right-0 top-0 z-50 h-full w-full max-w-md bg-white shadow-2xl flex flex-col animate-fade-in-right"
         role="dialog"
+        aria-modal="true"
         aria-label="Detalle de factura"
       >
         {/* Cabecera */}
@@ -144,6 +142,8 @@ export default function DrawerFacturaAdmin({ factura, onClose, onPagoRegistrado 
                   value={fecha}
                   onChange={e => setFecha(e.target.value)}
                   disabled={enviando}
+                  min={factura.fecha_emision}
+                  max={fechaHoyISO()}
                   className="w-full h-10 px-3 rounded-lg border border-warm-300 text-sm text-primary-900 focus:outline-none focus:ring-2 focus:ring-primary-400"
                 />
               </div>

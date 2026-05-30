@@ -44,7 +44,7 @@ export default function TablaFacturasAdmin({ facturas, onSeleccionar }: Props) {
                 <tr
                   key={f.id}
                   onClick={() => onSeleccionar(f)}
-                  className="hover:bg-warm-50 cursor-pointer transition-colors"
+                  className="hover:bg-warm-50 focus:outline-none focus-visible:bg-warm-100 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-400 cursor-pointer transition-colors"
                   tabIndex={0}
                   role="button"
                   onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSeleccionar(f) } }}

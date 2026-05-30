@@ -449,7 +449,7 @@ function PanelEmision() {
       )}
 
       {toast && (
-        <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-full shadow-lg text-sm font-medium animate-fade-in text-white transition-all ${toast.tipo === 'error' ? 'bg-error' : 'bg-success'}`}>
+        <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] px-5 py-3 rounded-full shadow-lg text-sm font-medium animate-fade-in text-white transition-all ${toast.tipo === 'error' ? 'bg-error' : 'bg-success'}`}>
           {toast.tipo === 'success' ? '✓ ' : '✗ '}{toast.msg}
         </div>
       )}

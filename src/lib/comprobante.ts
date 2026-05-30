@@ -180,11 +180,15 @@ export async function descargarComprobante(
   const bytes = await generarComprobantePDF(factura, residente, logoBytes)
   const blob = new Blob([bytes as BlobPart], { type: 'application/pdf' })
   const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `comprobante-${factura.numero ?? factura.id}.pdf`
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-  URL.revokeObjectURL(url)
+  try {
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `comprobante-${factura.numero ?? factura.id}.pdf`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+  } finally {
+    // Revocar siempre el ObjectURL, incluso si la descarga lanza (evita fuga).
+    URL.revokeObjectURL(url)
+  }
 }

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { useNotificaciones } from '../../contexts/NotificacionesContext'
 import { tiempoTranscurrido } from '../../lib/format'
+import Portal from '../Portal'
 import type { Notificacion, Rol, TipoNotificacion } from '../../types/database'
 
 // HU-NOTIF-01 — Vista de solicitudes por rol para abrir el detalle al hacer click.
@@ -75,53 +76,71 @@ export default function CampanaNotificaciones() {
   const navigate = useNavigate()
 
   const [isOpen, setIsOpen] = useState(false)
-  const [openUp, setOpenUp] = useState(false)
-  const [openLeft, setOpenLeft] = useState(false)
+  // Posición fija calculada desde el botón. El panel se renderiza en un Portal
+  // (document.body) para escapar del stacking context del sidebar/header — que,
+  // por el `transform` de animate-fade-in, dejaba el panel detrás del contenido.
+  const [coords, setCoords] = useState<React.CSSProperties>({})
   const menuRef = useRef<HTMLDivElement>(null)
   const btnRef = useRef<HTMLButtonElement>(null)
 
-  // El panel se reposiciona según dónde esté la campana, para no quedar cortado
-  // por los bordes de la pantalla:
-  //  - vertical: se abre hacia arriba si no hay espacio abajo (sidebar del admin).
-  //  - horizontal: se ancla a la izquierda si la campana está en la mitad izquierda
-  //    de la pantalla (sidebar del admin); a la derecha en los headers.
+  // Calcula la posición del panel según dónde esté la campana, anclándolo al
+  // viewport (fixed) para que nunca quede cortado ni por debajo de otro contenido:
+  //  - vertical: hacia arriba si no hay espacio abajo (sidebar del admin).
+  //  - horizontal: a la izquierda si la campana está en la mitad izquierda.
+  function calcularCoords() {
+    if (!btnRef.current) return
+    const rect = btnRef.current.getBoundingClientRect()
+    const abrirArriba = window.innerHeight - rect.bottom < 460
+    const anclarIzquierda = rect.left < window.innerWidth / 2
+    setCoords({
+      position: 'fixed',
+      ...(abrirArriba
+        ? { bottom: Math.round(window.innerHeight - rect.top + 8) }
+        : { top: Math.round(rect.bottom + 8) }),
+      ...(anclarIzquierda
+        ? { left: Math.max(8, Math.round(rect.left)) }
+        : { right: Math.max(8, Math.round(window.innerWidth - rect.right)) }),
+    })
+  }
+
   function toggleMenu() {
-    if (!isOpen && btnRef.current) {
-      const rect = btnRef.current.getBoundingClientRect()
-      setOpenUp(window.innerHeight - rect.bottom < 460)
-      setOpenLeft(rect.left < window.innerWidth / 2)
-    }
+    if (!isOpen) calcularCoords()
     setIsOpen(prev => !prev)
   }
 
   // HU-NOTIF-01 (accesibilidad) — cerrar con click fuera y con la tecla Escape.
+  // Como el panel vive en un Portal, el "click fuera" excluye tanto el panel
+  // (menuRef) como el botón (btnRef). Cerramos también en scroll/resize para que
+  // el panel anclado al viewport no quede desalineado.
   useEffect(() => {
+    if (!isOpen) return
     function handleClickOutside(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setIsOpen(false)
-      }
+      const target = e.target as Node
+      if (menuRef.current?.contains(target) || btnRef.current?.contains(target)) return
+      setIsOpen(false)
     }
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') setIsOpen(false)
     }
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside)
-      document.addEventListener('keydown', handleKeyDown)
-    }
+    function cerrar() { setIsOpen(false) }
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('resize', cerrar)
+    window.addEventListener('scroll', cerrar, true)
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
       document.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('resize', cerrar)
+      window.removeEventListener('scroll', cerrar, true)
     }
   }, [isOpen])
 
   // HU-NOTIF-01 — click en item: marca como leída y navega al detalle.
-  // Sprint 8 · HU-FACT-05 — facturas navegan a /residente/facturas con el id.
+  // Sprint 8/9 — las notificaciones de factura navegan a /residente/facturas con el id.
   function handleAbrir(notif: Notificacion) {
     setIsOpen(false)
     if (!notif.leida) void marcarComoLeida(notif.id)
 
-    // Sprint 8/9 — todas las notificaciones de factura abren la vista del residente,
-    // pre-seleccionando el detalle vía el id en metadata (deep link).
     if (notif.tipo === 'factura_nueva' || notif.tipo === 'factura_pagada' || notif.tipo === 'factura_por_vencer') {
       const facturaId = notif.metadata?.factura_id
       navigate(facturaId ? `/residente/facturas?id=${facturaId}` : '/residente/facturas')
@@ -136,7 +155,7 @@ export default function CampanaNotificaciones() {
   const topNotificaciones = notificaciones.slice(0, 10)
 
   return (
-    <div className="relative" ref={menuRef}>
+    <>
       <button
         ref={btnRef}
         type="button"
@@ -157,71 +176,75 @@ export default function CampanaNotificaciones() {
       </button>
 
       {isOpen && (
-        <div
-          className={`absolute ${openLeft ? 'left-0' : 'right-0'} ${openUp ? 'bottom-full mb-2' : 'top-full mt-2'} w-[calc(100vw-1rem)] sm:w-96 bg-white border border-warm-200 rounded-xl shadow-xl z-50 overflow-hidden ${openUp ? 'animate-fade-in' : 'animate-fade-in-down'}`}
-          role="dialog"
-          aria-label="Centro de notificaciones"
-        >
-          <div className="px-4 py-3 bg-warm-50 border-b border-warm-200">
-            <h3 className="font-semibold text-primary-900">Notificaciones</h3>
-          </div>
+        <Portal>
+          <div
+            ref={menuRef}
+            style={coords}
+            className="z-[60] w-[calc(100vw-1rem)] sm:w-96 bg-white border border-warm-200 rounded-xl shadow-xl overflow-hidden animate-fade-in"
+            role="dialog"
+            aria-label="Centro de notificaciones"
+          >
+            <div className="px-4 py-3 bg-warm-50 border-b border-warm-200">
+              <h3 className="font-semibold text-primary-900">Notificaciones</h3>
+            </div>
 
-          <ul className="max-h-[28rem] overflow-y-auto divide-y divide-warm-100" aria-live="polite">
-            {topNotificaciones.length === 0 ? (
-              <li className="px-4 py-8 text-center">
-                <div className="mx-auto w-12 h-12 bg-warm-100 rounded-full flex items-center justify-center mb-3">
-                  <svg className="w-6 h-6 text-warm-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                  </svg>
-                </div>
-                <p className="text-sm text-warm-500 font-medium">Aún no tienes notificaciones</p>
-              </li>
-            ) : (
-              topNotificaciones.map(notif => (
-                <li key={notif.id}>
-                  <button
-                    type="button"
-                    onClick={() => handleAbrir(notif)}
-                    className={`w-full text-left p-4 flex gap-3 hover:bg-warm-50 focus:bg-warm-50 focus:outline-none transition-colors cursor-pointer ${!notif.leida ? 'bg-primary-50/40' : ''}`}
-                  >
-                    <div className="shrink-0 mt-0.5">
-                      <div className={`p-2 rounded-full ${!notif.leida ? 'bg-white shadow-sm ring-1 ring-warm-200' : 'bg-warm-100'}`}>
-                        {getIconForTipo(notif.tipo)}
-                      </div>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className={`text-sm ${!notif.leida ? 'font-semibold text-primary-900' : 'font-medium text-warm-700'}`}>
-                        {notif.titulo}
-                      </p>
-                      <p className="text-xs text-warm-500 mt-0.5 line-clamp-2 leading-relaxed">
-                        {notif.mensaje}
-                      </p>
-                      <p className="text-[0.6875rem] text-warm-400 mt-1.5 font-medium">
-                        {tiempoTranscurrido(notif.created_at)}
-                      </p>
-                    </div>
-                    {!notif.leida && (
-                      <div className="shrink-0 flex items-center">
-                        <div className="w-2 h-2 bg-primary-500 rounded-full" />
-                      </div>
-                    )}
-                  </button>
+            <ul className="max-h-[28rem] overflow-y-auto divide-y divide-warm-100" aria-live="polite">
+              {topNotificaciones.length === 0 ? (
+                <li className="px-4 py-8 text-center">
+                  <div className="mx-auto w-12 h-12 bg-warm-100 rounded-full flex items-center justify-center mb-3">
+                    <svg className="w-6 h-6 text-warm-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                    </svg>
+                  </div>
+                  <p className="text-sm text-warm-500 font-medium">Aún no tienes notificaciones</p>
                 </li>
-              ))
-            )}
-          </ul>
+              ) : (
+                topNotificaciones.map(notif => (
+                  <li key={notif.id}>
+                    <button
+                      type="button"
+                      onClick={() => handleAbrir(notif)}
+                      className={`w-full text-left p-4 flex gap-3 hover:bg-warm-50 focus:bg-warm-50 focus:outline-none transition-colors cursor-pointer ${!notif.leida ? 'bg-primary-50/40' : ''}`}
+                    >
+                      <div className="shrink-0 mt-0.5">
+                        <div className={`p-2 rounded-full ${!notif.leida ? 'bg-white shadow-sm ring-1 ring-warm-200' : 'bg-warm-100'}`}>
+                          {getIconForTipo(notif.tipo)}
+                        </div>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className={`text-sm ${!notif.leida ? 'font-semibold text-primary-900' : 'font-medium text-warm-700'}`}>
+                          {notif.titulo}
+                        </p>
+                        <p className="text-xs text-warm-500 mt-0.5 line-clamp-2 leading-relaxed">
+                          {notif.mensaje}
+                        </p>
+                        <p className="text-[0.6875rem] text-warm-400 mt-1.5 font-medium">
+                          {tiempoTranscurrido(notif.created_at)}
+                        </p>
+                      </div>
+                      {!notif.leida && (
+                        <div className="shrink-0 flex items-center">
+                          <div className="w-2 h-2 bg-primary-500 rounded-full" />
+                        </div>
+                      )}
+                    </button>
+                  </li>
+                ))
+              )}
+            </ul>
 
-          <div className="px-4 py-3 bg-warm-50 border-t border-warm-200 text-center">
-            <Link
-              to="/notificaciones"
-              onClick={() => setIsOpen(false)}
-              className="text-xs font-semibold text-primary-600 hover:text-primary-800 uppercase tracking-wider"
-            >
-              Ver todas
-            </Link>
+            <div className="px-4 py-3 bg-warm-50 border-t border-warm-200 text-center">
+              <Link
+                to="/notificaciones"
+                onClick={() => setIsOpen(false)}
+                className="text-xs font-semibold text-primary-600 hover:text-primary-800 uppercase tracking-wider"
+              >
+                Ver todas
+              </Link>
+            </div>
           </div>
-        </div>
+        </Portal>
       )}
-    </div>
+    </>
   )
 }
