@@ -33,7 +33,7 @@ B(cover(
         ("Producto", "Zity"),
         ("Sprint", "Sprint 9 — Semana 11"),
         ("Stack", "React 19 + Vite 8 + TailwindCSS 4 · Supabase (Postgres + Auth + Storage + Realtime) · "
-                  "Resend · Vercel · GitHub Actions · Vitest · Recharts (desde S7) · Playwright (desde S7) · "
+                  "Resend · Vercel · GitHub Actions · Vitest · Recharts (desde S7) · "
                   "pdf-lib (nuevo, comprobantes) · pg_cron (nuevo, job diario)"),
         ("Product Owner", "Alvarez Rocca Jaqueline"),
         ("Scrum Master", "Meza Pelaez Carlos"),
@@ -47,8 +47,7 @@ B(cover(
          "3 días antes del vencimiento (Realtime + email) · descarga de comprobante PDF por factura pagada (pdf-lib) · "
          "tarjeta de totales del periodo (emitido / cobrado / pendiente / vencido) en /admin/facturacion"),
         ("Chore técnico del Sprint",
-         "Endpoint /health (DB + Auth + Storage) que cierra el último criterio core de DoD v2 + tercer E2E de la suite "
-         "Playwright (flujo 'marcar pagada'). 1 h, P2."),
+         "Endpoint /health (DB + Auth + Storage) que cierra el último criterio core de DoD v2. 1 h, P2."),
         ("Variables nuevas",
          "Ninguna en código fuente · /health reusa SUPABASE_SERVICE_ROLE_KEY (S3) y el cron reusa "
          "RESEND_API_KEY / RESEND_FROM_ADDRESS (S2/S6)"),
@@ -89,8 +88,7 @@ B(goal(
 B(note(
     "Nota: Sexta aplicación de DoD v2 y cierre del último criterio pendiente (/health). Facturación v2 completa el "
     "dominio de finanzas abierto en el S8 y deja la estructura de facturas lista para que la Tienda (S10/S11) sume "
-    "sus pedidos como línea de factura. El chore añade /health y el tercer E2E de la suite Playwright (flujo "
-    "'marcar pagada'), sosteniendo el patrón de 1 E2E por incremento."))
+    "sus pedidos como línea de factura. El chore añade /health, cerrando el último criterio core de DoD v2."))
 
 B(sub("PBIs seleccionados — Sprint 9"))
 B(table(
@@ -106,7 +104,7 @@ B(table(
          "Historia", dot("P2"), "2 h", "Santiago Flores"],
         ["PBI-S8-E02", "Tarjeta de totales del periodo en /admin/facturacion (emitido/cobrado/pendiente/vencido)",
          "Historia", dot("P2"), "1.5 h", "Santiago Flores"],
-        ["Chore-T", "Endpoint /health (DB + Auth + Storage) — cierra DoD v2 + tercer E2E 'marcar pagada'",
+        ["Chore-T", "Endpoint /health (DB + Auth + Storage) — cierra DoD v2",
          "Chore", dot("P2"), "1 h", "Cortez Zamora"],
         ["Buffer", "Reservado para imprevistos del cron (zona horaria, idempotencia) o de la generación del PDF",
          "—", dot("P2", "—"), "2.5 h", "—"],
@@ -178,9 +176,7 @@ B(table(
          "vencimiento = hoy + 3, estado='pendiente', recordatorio_enviado=false → notificación 'factura_por_vencer'; la "
          "Edge Function recordatorios-facturas envía el email vía net.http_post (fire-and-forget) + marca recordatorio_enviado=true.", "3 h"],
         ["Endpoint /health (DB + Auth + Storage) en Vercel + documentación /docs/ops/health.md + verificación manual "
-         "post-deploy. Cierra el último criterio de DoD v2.", "0.5 h"],
-        ["Tercer E2E de la suite (e2e/facturacion-cobros.spec.ts): admin marca pagada → residente ve badge verde + "
-         "notificación + descarga comprobante. Se sube al workflow.", "0.5 h"],
+         "post-deploy. Cierra el último criterio de DoD v2.", "1 h"],
     ],
     [5.9, 0.8]))
 
@@ -269,7 +265,7 @@ B(meta([
      "en /admin/facturacion."),
     ("Plan siguiente 24h",
      "Gonza: pulir badge de vencidas + test del cron corriendo dos veces (idempotencia). Cortez: endpoint /health "
-     "(DB + Auth + Storage) + doc + tercer E2E 'marcar pagada'. Santiago: tarjeta de totales del periodo "
+     "(DB + Auth + Storage) + doc. Santiago: tarjeta de totales del periodo "
      "(RPC totales_facturacion) + selector de mes."),
     ("Impedimentos",
      "Al adelantar el reloj del seed, ejecutar el cron dos veces seguidas generaba 2 notificaciones. Se añadió el "
@@ -286,11 +282,10 @@ B(meta([
      "Flujo completo demostrable: Carlos marca pagada la factura de Luz de Laura → Laura recibe 'Tu factura de Luz "
      "fue registrada como pagada' y el badge pasa a verde; descarga su comprobante PDF con sello 'PAGADO'. El seed "
      "adelanta el reloj: aparecen recordatorios 3 días antes y una factura pasa sola a 'vencida' (badge rojo). La "
-     "tarjeta de totales del periodo muestra emitido/cobrado/pendiente/vencido. /health responde JSON {status:ok}. "
-     "e2e/facturacion-cobros.spec.ts verde en CI (tercer E2E)."),
+     "tarjeta de totales del periodo muestra emitido/cobrado/pendiente/vencido. /health responde JSON {status:ok}."),
     ("Plan siguiente 24h",
      "Gonza: guión de la Sprint Review (pagar + simular avance del tiempo). Santiago: validar comprobante PDF y vista "
-     "en móvil (360 px). Cortez: ensayar /health (curl) y el E2E en pantalla compartida (mostrar trace)."),
+     "en móvil (360 px). Cortez: ensayar /health (curl) en pantalla compartida."),
     ("Impedimentos",
      "Laura (stakeholder) preguntó si recibirá también un recordatorio el mismo día del vencimiento, no solo 3 días "
      "antes. Está fuera del scope del S9; se registra como insumo para Notificaciones avanzadas (S12)."),
@@ -318,10 +313,10 @@ B(meta([
     ("Incremento presentado",
      "Facturación v2 operativa: marcar pagada con notificación Realtime, job diario de recordatorios (3 días antes) + "
      "estado 'vencida' automático, comprobante PDF descargable, tarjeta de totales del periodo, endpoint /health "
-     "(cierra DoD v2) y tercer E2E en la suite."),
+     "(cierra DoD v2)."),
     ("Modalidad de demo",
      "Dos navegadores en pantalla compartida (admin + residente) + avance simulado del tiempo con un seed especial "
-     "para mostrar recordatorios y vencidas. Trace viewer de Playwright para el E2E. curl a /health en vivo."),
+     "para mostrar recordatorios y vencidas. curl a /health en vivo."),
 ]))
 B(sub("Guión de demostración"))
 B(numlist([
@@ -339,14 +334,12 @@ B(numlist([
     "(badge rojo) y aparece bajo el filtro 'Vencidas' en /admin/facturacion.",
     "Cortez ejecuta <font face='Courier'>curl https://staging.zity.app/health</font> en vivo: responde "
     "{status:ok, db:ok, auth:ok, storage:ok, version:...}. Con esto se cierra el último criterio de DoD v2.",
-    "Trace viewer de Playwright: e2e/facturacion-cobros.spec.ts pasando (login admin → marcar pagada → login "
-    "residente → ve badge verde + notificación + descarga comprobante). Tercer E2E de la suite, verde y reproducible.",
 ]))
 B(goal(
     chk() + " CUMPLIDO: Facturación v2 operativa — marcar pagada con notificación Realtime, job diario de "
     "recordatorios (3 días antes) y estado 'vencida' automático, comprobante PDF descargable y tarjeta de totales del "
-    "periodo. /health en staging cierra DoD v2 (ahora al 100% de sus criterios core). Tercer E2E en la suite "
-    "Playwright. Sprint cerrado usando ~20 min del buffer."))
+    "periodo. /health en staging cierra DoD v2 (ahora al 100% de sus criterios core). Sprint cerrado usando "
+    "~20 min del buffer."))
 
 B(sub("Feedback de stakeholders"))
 B(para("<b>Laura Vega (Residente)</b>"))
@@ -384,8 +377,6 @@ B(table(
         ["PBI-S9-E01 (NUEVA)", "Exportar totales de facturación a CSV (feedback Carlos). P3, 1.5 h. Candidato S13."],
         ["PBI-S9-E02 (NUEVA)", "Recordatorio también el día del vencimiento, no solo 3 días antes (feedback Laura). "
                                "Se absorbe en Notificaciones avanzadas (S12)."],
-        ["Suite Playwright crece", "Tercer E2E entregado (facturacion-cobros). Patrón sostenido: 1 E2E por incremento, "
-                                   "como chore."],
         ["Sprint 10 confirmado", "Tienda interna v1: BD productos/pedidos/pedido_items + RLS, admin gestiona catálogo "
                                  "(alta/baja/stock/precio + foto), residente navega con filtros y búsqueda. Chore: CD "
                                  "a staging (deploy automático en merge a main)."],
@@ -477,9 +468,6 @@ B(table(
          "verificación; el deploy automático (CD) llega en el chore del S10</b></font>" % "ZBody"],
         ["tsc --noEmit pasa sin errores en CI",
          chk() + " <font color='#3E7D3A'><b>CUMPLIDO</b></font>"],
-        ["Playwright: E2E en pipeline",
-         chk() + " <font color='#3E7D3A'><b>CUMPLIDO — 3 E2E (crear-solicitud + facturacion + "
-         "facturacion-cobros)</b></font>"],
         ["ADR-009 (ciclo de cobro y jobs) + ADR-010 (comprobante PDF) documentados",
          chk() + " <font color='#3E7D3A'><b>CUMPLIDO — adicional a DoD v2</b></font>"],
     ],
@@ -581,9 +569,7 @@ B(hucard(
 
 B(para(
     "<b>Chore técnico del Sprint:</b> endpoint /health (DB + Auth + Storage) en Vercel que responde JSON con el estado "
-    "de cada dependencia y la versión — cierra el último criterio core de DoD v2 — más el tercer E2E de la suite Playwright "
-    "(e2e/facturacion-cobros.spec.ts: admin marca pagada → residente ve badge verde + notificación + descarga "
-    "comprobante). 1 h, P2. La suite pasa de 2 a 3 E2E sin volverse protagonista."))
+    "de cada dependencia y la versión — cierra el último criterio core de DoD v2. 1 h, P2."))
 
 B(sub("PBIs emergentes — entran en Sprints futuros"))
 B(table(

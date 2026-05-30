@@ -44,3 +44,5 @@ sprint8-facturas-sin-aborterror.png
 *.njsproj
 *.sln
 *.sw?
+__pycache__/
+*.pyc

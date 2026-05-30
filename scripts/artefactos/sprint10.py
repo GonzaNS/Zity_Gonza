@@ -34,7 +34,7 @@ B(cover(
         ("Producto", "Zity"),
         ("Sprint", "Sprint 10 — Semana 12"),
         ("Stack", "React 19 + Vite 8 + TailwindCSS 4 · Supabase (Postgres + Auth + Storage + Realtime) · "
-                  "Resend · Vercel · GitHub Actions · Vitest · Recharts (desde S7) · Playwright (desde S7) · "
+                  "Resend · Vercel · GitHub Actions · Vitest · Recharts (desde S7) · "
                   "pdf-lib (S9) · pg_cron (S9)"),
         ("Product Owner", "Alvarez Rocca Jaqueline"),
         ("Scrum Master", "Meza Pelaez Carlos"),
@@ -93,8 +93,7 @@ B(note(
     "Nota: Séptima aplicación de DoD v2. La Tienda abre el último dominio nuevo del producto. En este Sprint solo se "
     "entrega el catálogo (v1): el carrito, el descuento de stock y la integración con la factura mensual son el S11 "
     "(Tienda v2, primera aplicación de DoD v3). Las tablas pedidos y pedido_items se crean ahora con su RLS pero aún "
-    "no tienen flujo de UI. El chore de CD cierra la verificación post-deploy automática que quedaba de DoD v2; el "
-    "E2E del módulo Tienda se reserva para el S11, donde cubrirá el flujo crítico carrito → pedido → factura."))
+    "no tienen flujo de UI. El chore de CD cierra la verificación post-deploy automática que quedaba de DoD v2."))
 
 B(sub("PBIs seleccionados — Sprint 10"))
 B(table(
@@ -473,18 +472,14 @@ B(table(
          "último criterio de DoD v2)</b></font>"],
         ["tsc --noEmit pasa sin errores en CI",
          chk() + " <font color='#3E7D3A'><b>CUMPLIDO</b></font>"],
-        ["Playwright: E2E en pipeline",
-         chk() + " <font color='#3E7D3A'><b>CUMPLIDO — 3 E2E (el E2E de Tienda entra en el S11 con el flujo de "
-         "carrito)</b></font>"],
         ["ADR-011 (modelo de Tienda) + ADR-012 (CD a staging) documentados",
          chk() + " <font color='#3E7D3A'><b>CUMPLIDO — adicional a DoD v2</b></font>"],
     ],
     [4.4, 2.3]))
 B(goal(
     "DoD v2 cerrada al 100% en sus criterios core: el CD con verificación post-deploy cierra el único matiz que "
-    "quedaba desde el S8. A partir del Sprint 11 (Tienda v2) entra DoD v3, que exige E2E de los módulos críticos, "
-    "no-PII en logs y entrega como release candidate. Sprint 10 cerrado usando ~30 min del buffer; sexto Sprint "
-    "consecutivo sin hotfixes."))
+    "quedaba desde el S8. A partir del Sprint 11 (Tienda v2) entra DoD v3, que exige no-PII en logs y entrega como "
+    "release candidate. Sprint 10 cerrado usando ~30 min del buffer; sexto Sprint consecutivo sin hotfixes."))
 
 # --------------------------------------------------------------------------- #
 #  5 · HISTORIAS DE USUARIO — SPRINT 10                                        #
@@ -643,7 +638,7 @@ B(note("Nota: los emergentes del S10 se ubican — PBI-S10-E01 (quick view) en S
 B(sub("Vista previa Sprint 11 — Tienda interna v2 (carrito + integración con factura)"))
 B(goal("Sprint 11: cerrar el ciclo de la tienda. El residente arma un carrito y confirma su pedido; el pedido "
        "descuenta stock de forma atómica y, al cierre de mes, se suma como línea a su factura. El admin ve todas las "
-       "órdenes con filtros. Primera aplicación de DoD v3 (E2E del flujo carrito → pedido → factura + no-PII)."))
+       "órdenes con filtros. Primera aplicación de DoD v3 (no-PII en logs + release candidate)."))
 B(table(
     ["PBI", "Historia", "Horas est.", "Prior."],
     [
