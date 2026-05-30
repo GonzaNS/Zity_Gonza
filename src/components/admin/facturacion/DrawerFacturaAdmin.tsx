@@ -3,8 +3,9 @@
 // registrar_pago_factura (idempotente y atómica). El botón se deshabilita tras
 // el primer click para evitar doble pago (R3).
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useModalBehavior } from '../../../hooks/useModalBehavior'
+import { useFocusTrap } from '../../../hooks/useFocusTrap'
 import {
   LABEL_FACTURA_TIPO,
   LABEL_FACTURA_ESTADO,
@@ -44,6 +45,9 @@ export default function DrawerFacturaAdmin({ factura, onClose, onPagoRegistrado 
 
   // Escape + bloqueo de scroll del body (patrón estándar del proyecto).
   useModalBehavior(onClose, enviando)
+  // Atrapar el foco dentro del drawer (accesibilidad).
+  const panelRef = useRef<HTMLElement>(null)
+  useFocusTrap(panelRef)
 
   const estadoVisual = estaVencida(factura) && factura.estado === 'pendiente' ? 'vencida' : factura.estado
   const puedePagar = puedeMarcarsePagada(factura.estado)
@@ -70,6 +74,7 @@ export default function DrawerFacturaAdmin({ factura, onClose, onPagoRegistrado 
         onClick={() => { if (!enviando) onClose() }}
       />
       <aside
+        ref={panelRef}
         className="fixed right-0 top-0 z-50 h-full w-full max-w-md bg-white shadow-2xl flex flex-col animate-fade-in-right"
         role="dialog"
         aria-modal="true"

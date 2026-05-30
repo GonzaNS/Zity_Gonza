@@ -2,7 +2,9 @@
 // HU-MANT-04 SPRINT-4 — Añade sección de actualización de estado
 // HU-MANT-05 SPRINT-4 — Reemplaza historial inline por componente reutilizable
 
+import { useRef } from 'react'
 import { useModalBehavior } from '../../../hooks/useModalBehavior'
+import { useFocusTrap } from '../../../hooks/useFocusTrap'
 import { labelCategoria, labelTipo } from '../../../lib/solicitudes'
 import { tiempoTranscurrido } from '../../../lib/format'
 // HU-MANT-04 SPRINT-4 — Sección de actualización de estado del técnico
@@ -59,6 +61,9 @@ export default function DrawerDetalleTecnico({ solicitud, fotoUrl, onCerrar, onE
   const { user } = useAuth()
 
   useModalBehavior(onCerrar, false)
+  // Atrapar el foco dentro del drawer (accesibilidad).
+  const panelRef = useRef<HTMLElement>(null)
+  useFocusTrap(panelRef)
 
   const unidad =
     solicitud.piso && solicitud.departamento
@@ -80,7 +85,7 @@ export default function DrawerDetalleTecnico({ solicitud, fotoUrl, onCerrar, onE
         onClick={onCerrar}
       />
 
-      <aside className="relative z-10 bg-white shadow-2xl w-full sm:w-[32rem] lg:w-[36rem] max-w-full h-full flex flex-col animate-fade-in-right">
+      <aside ref={panelRef} className="relative z-10 bg-white shadow-2xl w-full sm:w-[32rem] lg:w-[36rem] max-w-full h-full flex flex-col animate-fade-in-right">
         {/* Cabecera */}
         <div className="shrink-0 px-5 sm:px-6 py-4 border-b border-warm-200 flex items-center justify-between gap-3">
           <div className="min-w-0">

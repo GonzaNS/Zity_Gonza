@@ -11,18 +11,23 @@ export default function PopoverExportarCSV() {
 
   const popoverRef = useRef<HTMLDivElement>(null)
 
-  // Cerrar si se hace clic afuera
+  // Cerrar si se hace clic afuera o con la tecla Escape
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
         setAbierto(false)
       }
     }
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') setAbierto(false)
+    }
     if (abierto) {
       document.addEventListener('mousedown', handleClickOutside)
+      document.addEventListener('keydown', handleKeyDown)
     }
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleKeyDown)
     }
   }, [abierto])
 

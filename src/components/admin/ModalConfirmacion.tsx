@@ -1,4 +1,6 @@
+import { useRef } from 'react'
 import { useModalBehavior } from '../../hooks/useModalBehavior'
+import { useFocusTrap } from '../../hooks/useFocusTrap'
 
 type Props = {
   titulo: string
@@ -20,9 +22,13 @@ export default function ModalConfirmacion({
   onCancelar,
 }: Props) {
   useModalBehavior(onCancelar, cargando)
+  // Atrapar el foco dentro del modal (accesibilidad).
+  const panelRef = useRef<HTMLElement>(null)
+  useFocusTrap(panelRef)
 
   return (
     <div
+      ref={panelRef as React.RefObject<HTMLDivElement>}
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-confirmacion-titulo"

@@ -3,7 +3,9 @@
 // Muestra foto, estado, descripción, y el historial de estados reutilizable
 // con privacidad de autor para rol=residente.
 
+import { useRef } from 'react'
 import { useModalBehavior } from '../../hooks/useModalBehavior'
+import { useFocusTrap } from '../../hooks/useFocusTrap'
 import { useAuth } from '../../contexts/AuthContext'
 import { labelCategoria, labelTipo } from '../../lib/solicitudes'
 import { tiempoTranscurrido } from '../../lib/format'
@@ -47,6 +49,9 @@ export default function DrawerDetalleSolicitudResidente({
   // HU-MANT-05 SPRINT-4 — userId para la privacidad del autor en el historial
   const { user } = useAuth()
   useModalBehavior(onCerrar, false)
+  // Atrapar el foco dentro del drawer (accesibilidad).
+  const panelRef = useRef<HTMLElement>(null)
+  useFocusTrap(panelRef)
 
   return (
     <div
@@ -61,7 +66,7 @@ export default function DrawerDetalleSolicitudResidente({
         onClick={onCerrar}
       />
 
-      <aside className="relative z-10 bg-white shadow-2xl w-full sm:w-[32rem] lg:w-[36rem] max-w-full h-full flex flex-col animate-fade-in-right">
+      <aside ref={panelRef} className="relative z-10 bg-white shadow-2xl w-full sm:w-[32rem] lg:w-[36rem] max-w-full h-full flex flex-col animate-fade-in-right">
 
         {/* Cabecera */}
         <div className="shrink-0 px-5 sm:px-6 py-4 border-b border-warm-200 flex items-center justify-between gap-3">

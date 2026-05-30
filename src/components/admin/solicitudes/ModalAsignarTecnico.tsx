@@ -7,8 +7,9 @@
 //   - Textarea de nota de asignación (máx. 300 caracteres con contador)
 //   - Botón "Asignar" o "Reasignar" según el estado actual de la solicitud
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useModalBehavior } from '../../../hooks/useModalBehavior'
+import { useFocusTrap } from '../../../hooks/useFocusTrap'
 import {
   useTecnicosActivos,
   asignarTecnico,
@@ -48,6 +49,9 @@ export default function ModalAsignarTecnico({
   const [errorAsignacion, setErrorAsignacion] = useState<string | null>(null)
 
   useModalBehavior(onCerrar, asignando)
+  // Atrapar el foco dentro del modal (accesibilidad).
+  const panelRef = useRef<HTMLElement>(null)
+  useFocusTrap(panelRef)
 
   const tecnicoId = tecnicoIdSeleccionado || grupos[0]?.tecnicos[0]?.id || ''
 
@@ -95,6 +99,7 @@ export default function ModalAsignarTecnico({
 
   return (
     <div
+      ref={panelRef as React.RefObject<HTMLDivElement>}
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-asignar-titulo"

@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useInvitacion } from '../../hooks/useInvitacion'
 import { useModalBehavior } from '../../hooks/useModalBehavior'
+import { useFocusTrap } from '../../hooks/useFocusTrap'
 import { EMAIL_REGEX } from '../../lib/validators'
 import type { Rol } from '../../types/database'
 
@@ -25,6 +26,9 @@ export default function ModalInvitacion({ onEnviado, onCerrar }: Props) {
   const [errores, setErrores] = useState<Errores>({})
 
   useModalBehavior(onCerrar, cargando)
+  // Atrapar el foco dentro del modal (accesibilidad).
+  const panelRef = useRef<HTMLElement>(null)
+  useFocusTrap(panelRef)
 
   function validar(): Errores {
     const e: Errores = {}
@@ -57,6 +61,7 @@ export default function ModalInvitacion({ onEnviado, onCerrar }: Props) {
 
   return (
     <div
+      ref={panelRef as React.RefObject<HTMLDivElement>}
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-invitacion-titulo"

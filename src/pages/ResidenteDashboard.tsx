@@ -91,7 +91,7 @@ export default function ResidenteDashboard() {
   return (
     <div className="min-h-screen bg-warm-50">
       <header className="bg-white border-b border-warm-200">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <img src={zityLogo} alt="Zity" className="h-9 w-auto" />
             <span className="text-xs font-semibold bg-accent-500 text-white px-2.5 py-1 rounded-full tracking-wider uppercase">
@@ -119,7 +119,7 @@ export default function ResidenteDashboard() {
             </Link>
             <button
               onClick={handleSignOut}
-              className="text-sm text-warm-400 hover:text-error transition-colors font-medium cursor-pointer"
+              className="text-sm text-warm-400 hover:text-error transition-colors font-medium whitespace-nowrap cursor-pointer"
             >
               Cerrar sesión
             </button>

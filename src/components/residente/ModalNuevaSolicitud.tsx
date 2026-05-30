@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useRef } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useCrearSolicitud } from '../../hooks/useSolicitudes'
 import { useModalBehavior } from '../../hooks/useModalBehavior'
+import { useFocusTrap } from '../../hooks/useFocusTrap'
 import {
   TIPOS_SOLICITUD,
   categoriasParaTipo,
@@ -36,6 +37,9 @@ export default function ModalNuevaSolicitud({ onCreada, onCerrar }: Props) {
   const [confirmacion, setConfirmacion] = useState<Solicitud | null>(null)
 
   useModalBehavior(onCerrar, enviando)
+  // Atrapar el foco dentro del modal (accesibilidad).
+  const panelRef = useRef<HTMLElement>(null)
+  useFocusTrap(panelRef)
 
   const categoriasDisponibles = useMemo(() => categoriasParaTipo(tipo), [tipo])
 
@@ -96,6 +100,7 @@ export default function ModalNuevaSolicitud({ onCreada, onCerrar }: Props) {
 
   return (
     <div
+      ref={panelRef as React.RefObject<HTMLDivElement>}
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-nueva-solicitud-titulo"

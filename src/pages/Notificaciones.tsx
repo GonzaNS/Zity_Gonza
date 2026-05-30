@@ -1,6 +1,7 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useNotificaciones } from '../contexts/NotificacionesContext'
+import { useFocusTrap } from '../hooks/useFocusTrap'
 import RangoDeFechas from '../components/shared/RangoDeFechas'
 import { tiempoTranscurrido } from '../lib/format'
 import type { TipoNotificacion } from '../types/database'
@@ -53,6 +54,10 @@ export default function Notificaciones() {
   const [pagina, setPagina] = useState(0)
   const [confirmarTodas, setConfirmarTodas] = useState(false)
   const [toast, setToast] = useState<{ tipo: 'error' | 'success'; msg: string } | null>(null)
+
+  // Atrapar el foco dentro del modal de confirmación (accesibilidad).
+  const panelRef = useRef<HTMLElement>(null)
+  useFocusTrap(panelRef, confirmarTodas)
 
   function mostrarToast(tipo: 'error' | 'success', msg: string) {
     setToast({ tipo, msg })
@@ -239,7 +244,7 @@ export default function Notificaciones() {
 
       {/* HU-NOTIF-02 — Modal de confirmación para marcar todas como leídas */}
       {confirmarTodas && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
+        <div ref={panelRef as React.RefObject<HTMLDivElement>} className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-fade-in" onClick={() => setConfirmarTodas(false)} />
           <div className="relative z-10 bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 animate-scale-in">
             <h2 className="font-display text-lg font-semibold text-primary-900">Marcar todas como leídas</h2>

@@ -211,7 +211,7 @@ export default function ResidenteFacturas() {
             <Link to="/perfil" className="text-sm text-primary-700 font-medium hidden sm:inline hover:text-primary-900">
               {profile?.nombre}
             </Link>
-            <button onClick={handleSignOut} className="text-sm text-warm-400 hover:text-error transition-colors font-medium cursor-pointer">
+            <button onClick={handleSignOut} className="text-sm text-warm-400 hover:text-error transition-colors font-medium whitespace-nowrap cursor-pointer">
               Cerrar sesión
             </button>
           </div>

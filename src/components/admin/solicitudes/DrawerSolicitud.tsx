@@ -1,8 +1,9 @@
 // HU-MANT-02 SPRINT-4
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
 import { useModalBehavior } from '../../../hooks/useModalBehavior'
+import { useFocusTrap } from '../../../hooks/useFocusTrap'
 import { type SolicitudConResidente } from '../../../hooks/useSolicitudesAdmin'
 import { actualizarPrioridadSolicitud } from '../../../hooks/useSolicitudes'
 import { labelCategoria, labelTipo } from '../../../lib/solicitudes'
@@ -53,6 +54,9 @@ export default function DrawerSolicitud({ solicitud, fotoUrl, onCerrar, onPriori
   }, [solicitud.id])
 
   useModalBehavior(onCerrar, actualizando)
+  // Atrapar el foco dentro del drawer (accesibilidad).
+  const panelRef = useRef<HTMLElement>(null)
+  useFocusTrap(panelRef)
 
   async function handleCambiarPrioridad(nueva: 'normal' | 'urgente') {
     if (nueva === prioridadActual || actualizando) return
@@ -78,7 +82,7 @@ export default function DrawerSolicitud({ solicitud, fotoUrl, onCerrar, onPriori
         className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-fade-in"
         onClick={actualizando ? undefined : onCerrar}
       />
-      <aside className="relative z-10 bg-white shadow-2xl w-full sm:w-[32rem] lg:w-[36rem] max-w-full h-full flex flex-col animate-fade-in-right">
+      <aside ref={panelRef} className="relative z-10 bg-white shadow-2xl w-full sm:w-[32rem] lg:w-[36rem] max-w-full h-full flex flex-col animate-fade-in-right">
         <div className="shrink-0 px-5 sm:px-6 py-4 border-b border-warm-200 flex items-center justify-between gap-3">
           <div className="min-w-0">
             <p className="font-mono text-xs text-warm-400">{solicitud.codigo}</p>
