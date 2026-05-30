@@ -1,18 +1,21 @@
-// Sprint 8 · HU-FACT-02 — Página de facturación para administradores.
+// Sprint 8 · HU-FACT-02 — Emisión de facturas (individual / lote).
+// Sprint 9 · HU-FACT-04/06 + PBI-S8-E02 — Listado de facturas emitidas con
+// totales del periodo, filtros, y acción "Marcar como pagada" en el drawer.
 // Ruta: /admin/facturacion
 //
-// Dos modos:
-//   • Individual: formulario completo con selector de residente activo.
-//   • Lote: emite la misma factura a TODOS los residentes activos en
-//     una sola transacción Postgres (RPC emitir_facturas_lote).
-//
-// Validaciones: cliente (campo a campo) + servidor (RLS + UNIQUE + check monto).
-// Toast de éxito o error con detalle claro.
+// Dos pestañas:
+//   • Facturas emitidas (default): totales del periodo + filtros + tabla + drawer.
+//   • Emitir nueva: formulario individual / lote (Sprint 8).
 
 import { useState } from 'react'
 import AdminShell from '../../components/admin/AdminShell'
 import { supabase } from '../../lib/supabase'
 import { useResidentesActivos } from '../../hooks/useResidentesActivos'
+import { useFacturasAdmin, type FacturaAdmin } from '../../hooks/useFacturasAdmin'
+import type { FiltroFactura } from '../../hooks/useFacturasResidente'
+import TarjetaTotales from '../../components/admin/facturacion/TarjetaTotales'
+import TablaFacturasAdmin from '../../components/admin/facturacion/TablaFacturasAdmin'
+import DrawerFacturaAdmin from '../../components/admin/facturacion/DrawerFacturaAdmin'
 import {
   LABEL_FACTURA_TIPO,
   formatearMonto,
@@ -25,7 +28,6 @@ import {
 function ultimoDiaDelMes(periodo: string): string {
   if (!periodo || !/^\d{4}-(0[1-9]|1[0-2])$/.test(periodo)) return ''
   const [year, month] = periodo.split('-').map(Number)
-  // new Date(year, month, 0) → día 0 del mes siguiente = último día del mes actual
   const ultimo = new Date(year!, month!, 0)
   return ultimo.toISOString().split('T')[0]!
 }
@@ -37,7 +39,7 @@ function periodoActual(): string {
 
 // ─── Tipos internos ─────────────────────────────────────────────────────────
 
-type Modo = 'individual' | 'lote'
+type Tab = 'listado' | 'emitir'
 
 type CamposForm = {
   residente_id: string
@@ -61,10 +63,133 @@ const CAMPOS_VACÍOS: CamposForm = {
 
 const TIPOS_FACTURA = Object.entries(LABEL_FACTURA_TIPO) as [FacturaTipo, string][]
 
-// ─── Componente principal ───────────────────────────────────────────────────
+const FILTROS: { valor: FiltroFactura; label: string }[] = [
+  { valor: 'todas',     label: 'Todas' },
+  { valor: 'pendiente', label: 'Pendientes' },
+  { valor: 'pagada',    label: 'Pagadas' },
+  { valor: 'vencida',   label: 'Vencidas' },
+]
+
+// ─── Componente principal (tabs) ──────────────────────────────────────────────
 
 export default function AdminFacturacion() {
-  const [modo, setModo] = useState<Modo>('individual')
+  const [tab, setTab] = useState<Tab>('listado')
+
+  return (
+    <AdminShell
+      title="Facturación"
+      subtitle="Registra pagos, controla vencimientos y emite nuevas facturas."
+    >
+      <div className="flex gap-1 p-1 bg-warm-100 rounded-xl w-fit mb-6 sm:mb-8 animate-fade-in">
+        {([['listado', 'Facturas emitidas'], ['emitir', 'Emitir nueva']] as [Tab, string][]).map(([t, label]) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => setTab(t)}
+            className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+              tab === t ? 'bg-white text-primary-700 shadow-sm' : 'text-warm-400 hover:text-primary-700'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'listado' ? <PanelListado /> : <PanelEmision />}
+    </AdminShell>
+  )
+}
+
+// ─── Panel: listado de facturas emitidas + totales + pago ─────────────────────
+
+function PanelListado() {
+  const [filtro, setFiltro] = useState<FiltroFactura>('todas')
+  const [periodo, setPeriodo] = useState<string>(periodoActual())
+  const [seleccionada, setSeleccionada] = useState<FacturaAdmin | null>(null)
+  const [toast, setToast] = useState<Toast>(null)
+
+  const { facturas, totales, loading, error, recargar } = useFacturasAdmin(filtro, periodo)
+
+  function mostrarToast(tipo: 'success' | 'error', msg: string) {
+    setToast({ tipo, msg })
+    setTimeout(() => setToast(null), 4500)
+  }
+
+  // Tras registrar un pago: cierra el drawer, avisa y recalcula totales en vivo.
+  function handlePagoRegistrado(mensaje: string) {
+    setSeleccionada(null)
+    mostrarToast('success', mensaje)
+    recargar()
+  }
+
+  return (
+    <>
+      <TarjetaTotales totales={totales} periodo={periodo} onPeriodoChange={setPeriodo} loading={loading} />
+
+      {/* Filtros por estado */}
+      <div className="flex gap-1.5 flex-wrap mb-5 animate-fade-in">
+        {FILTROS.map(f => (
+          <button
+            key={f.valor}
+            type="button"
+            onClick={() => setFiltro(f.valor)}
+            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all cursor-pointer border ${
+              filtro === f.valor
+                ? 'bg-primary-600 text-white border-primary-600'
+                : 'bg-white text-warm-500 border-warm-200 hover:border-primary-300 hover:text-primary-700'
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      {error && (
+        <div className="mb-5 p-4 bg-error/10 border border-error/20 rounded-lg text-error text-sm">{error}</div>
+      )}
+
+      {loading ? (
+        <div className="flex justify-center py-16">
+          <div className="w-8 h-8 border-2 border-primary-200 border-t-primary-600 rounded-full animate-spin" />
+        </div>
+      ) : facturas.length === 0 ? (
+        <div className="bg-white border border-warm-200 rounded-xl p-10 sm:p-14 text-center animate-fade-in">
+          <p className="font-medium text-primary-900">No hay facturas</p>
+          <p className="text-sm text-warm-400 mt-1">
+            {filtro === 'todas'
+              ? 'Aún no se han emitido facturas. Usa la pestaña "Emitir nueva".'
+              : 'No hay facturas con ese estado.'}
+          </p>
+        </div>
+      ) : (
+        <TablaFacturasAdmin facturas={facturas} onSeleccionar={setSeleccionada} />
+      )}
+
+      {seleccionada && (
+        <DrawerFacturaAdmin
+          factura={seleccionada}
+          onClose={() => setSeleccionada(null)}
+          onPagoRegistrado={handlePagoRegistrado}
+        />
+      )}
+
+      {toast && (
+        <div
+          className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] px-5 py-3 rounded-full shadow-lg text-sm font-medium animate-fade-in text-white ${
+            toast.tipo === 'error' ? 'bg-error' : 'bg-success'
+          }`}
+        >
+          {toast.tipo === 'success' ? '✓ ' : '✗ '}{toast.msg}
+        </div>
+      )}
+    </>
+  )
+}
+
+// ─── Panel: emisión individual / lote (Sprint 8) ──────────────────────────────
+
+function PanelEmision() {
+  const [modo, setModo] = useState<'individual' | 'lote'>('individual')
   const [form, setForm] = useState<CamposForm>(CAMPOS_VACÍOS)
   const [erroresForm, setErroresForm] = useState<Partial<Record<keyof CamposForm, string>>>({})
   const [enviando, setEnviando] = useState(false)
@@ -78,7 +203,6 @@ export default function AdminFacturacion() {
     setTimeout(() => setToast(null), 4500)
   }
 
-  // ── Actualizar campo y autocompletar vencimiento al cambiar periodo ────────
   function setCampo<K extends keyof CamposForm>(key: K, value: CamposForm[K]) {
     setForm(prev => {
       const next = { ...prev, [key]: value }
@@ -90,7 +214,6 @@ export default function AdminFacturacion() {
     setErroresForm(prev => ({ ...prev, [key]: undefined }))
   }
 
-  // ── Validación cliente ────────────────────────────────────────────────────
   function validar(): boolean {
     const errs: Partial<Record<keyof CamposForm, string>> = {}
     if (modo === 'individual' && !form.residente_id) errs.residente_id = 'Selecciona un residente.'
@@ -109,7 +232,6 @@ export default function AdminFacturacion() {
     return Object.keys(errs).length === 0
   }
 
-  // ── Emisión individual ────────────────────────────────────────────────────
   async function handleIndividual(e: React.FormEvent) {
     e.preventDefault()
     if (!validar()) return
@@ -139,7 +261,6 @@ export default function AdminFacturacion() {
     }
   }
 
-  // ── Emisión por lote ──────────────────────────────────────────────────────
   async function handleLote() {
     if (!validar()) { setModalLote(false); return }
     setModalLote(false)
@@ -164,23 +285,16 @@ export default function AdminFacturacion() {
     }
   }
 
-  // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <AdminShell
-      title="Facturación"
-      subtitle="Emite facturas individuales o en lote para todos los residentes activos."
-    >
-      {/* Selector de modo */}
-      <div className="flex gap-1 p-1 bg-warm-100 rounded-xl w-fit mb-6 sm:mb-8 animate-fade-in">
-        {(['individual', 'lote'] as Modo[]).map(m => (
+    <>
+      <div className="flex gap-1 p-1 bg-warm-100 rounded-xl w-fit mb-6 animate-fade-in">
+        {(['individual', 'lote'] as const).map(m => (
           <button
             key={m}
             type="button"
             onClick={() => { setModo(m); setErroresForm({}) }}
             className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
-              modo === m
-                ? 'bg-white text-primary-700 shadow-sm'
-                : 'text-warm-400 hover:text-primary-700'
+              modo === m ? 'bg-white text-primary-700 shadow-sm' : 'text-warm-400 hover:text-primary-700'
             }`}
           >
             {m === 'individual' ? 'Emisión individual' : 'Emisión por lote'}
@@ -188,7 +302,6 @@ export default function AdminFacturacion() {
         ))}
       </div>
 
-      {/* Formulario */}
       <div className="bg-white border border-warm-200 rounded-xl p-6 sm:p-8 max-w-2xl animate-fade-in">
         {modo === 'lote' && (
           <div className="flex items-start gap-3 mb-6 p-4 bg-accent-50 border border-accent-200 rounded-lg">
@@ -205,8 +318,6 @@ export default function AdminFacturacion() {
 
         <form onSubmit={modo === 'individual' ? handleIndividual : e => { e.preventDefault(); if (validar()) setModalLote(true) }} noValidate>
           <div className="space-y-5">
-
-            {/* Residente — solo modo individual */}
             {modo === 'individual' && (
               <Campo label="Residente" error={erroresForm.residente_id}>
                 <select
@@ -226,7 +337,6 @@ export default function AdminFacturacion() {
               </Campo>
             )}
 
-            {/* Tipo */}
             <Campo label="Tipo de factura" error={erroresForm.tipo}>
               <select
                 id="f-tipo"
@@ -241,7 +351,6 @@ export default function AdminFacturacion() {
               </select>
             </Campo>
 
-            {/* Monto */}
             <Campo label="Monto ($)" error={erroresForm.monto}>
               <input
                 id="f-monto"
@@ -255,7 +364,6 @@ export default function AdminFacturacion() {
               />
             </Campo>
 
-            {/* Período */}
             <Campo label="Período (YYYY-MM)" error={erroresForm.periodo}>
               <input
                 id="f-periodo"
@@ -266,7 +374,6 @@ export default function AdminFacturacion() {
               />
             </Campo>
 
-            {/* Vencimiento */}
             <Campo label="Fecha de vencimiento" error={erroresForm.vencimiento}>
               <input
                 id="f-vencimiento"
@@ -280,7 +387,6 @@ export default function AdminFacturacion() {
               </p>
             </Campo>
 
-            {/* Descripción (opcional) */}
             <Campo label="Descripción (opcional)" error={undefined}>
               <textarea
                 id="f-descripcion"
@@ -293,7 +399,6 @@ export default function AdminFacturacion() {
             </Campo>
           </div>
 
-          {/* Botón de acción */}
           <div className="mt-7 flex justify-end">
             <button
               type="submit"
@@ -305,25 +410,15 @@ export default function AdminFacturacion() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
               )}
-              {enviando
-                ? 'Emitiendo…'
-                : modo === 'individual'
-                  ? 'Emitir factura'
-                  : `Emitir a todos (${residentes.length})`
-              }
+              {enviando ? 'Emitiendo…' : modo === 'individual' ? 'Emitir factura' : `Emitir a todos (${residentes.length})`}
             </button>
           </div>
         </form>
       </div>
 
-      {/* Modal de confirmación — lote */}
       {modalLote && (
         <>
-          <div
-            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm animate-fade-in"
-            aria-hidden="true"
-            onClick={() => setModalLote(false)}
-          />
+          <div className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm animate-fade-in" aria-hidden="true" onClick={() => setModalLote(false)} />
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 animate-fade-in">
               <div className="flex items-center gap-3 mb-4">
@@ -332,30 +427,19 @@ export default function AdminFacturacion() {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                   </svg>
                 </div>
-                <h2 className="font-display text-lg font-semibold text-primary-900">
-                  Confirmar emisión por lote
-                </h2>
+                <h2 className="font-display text-lg font-semibold text-primary-900">Confirmar emisión por lote</h2>
               </div>
               <p className="text-sm text-warm-500 mb-5">
                 Se emitirán <strong>{residentes.length} factura{residentes.length !== 1 ? 's' : ''}</strong> de{' '}
                 <strong>{form.tipo ? LABEL_FACTURA_TIPO[form.tipo as FacturaTipo] : '—'}</strong> por{' '}
-                <strong>{formatearMonto(Number(form.monto))}</strong> para el período{' '}
-                <strong>{form.periodo}</strong> a todos los residentes activos.
+                <strong>{formatearMonto(Number(form.monto))}</strong> para el período <strong>{form.periodo}</strong> a todos los residentes activos.
                 Esta operación no se puede deshacer individualmente.
               </p>
               <div className="flex gap-3 justify-end">
-                <button
-                  type="button"
-                  onClick={() => setModalLote(false)}
-                  className="px-4 py-2 text-sm font-medium text-warm-500 hover:text-primary-700 transition-colors cursor-pointer"
-                >
+                <button type="button" onClick={() => setModalLote(false)} className="px-4 py-2 text-sm font-medium text-warm-500 hover:text-primary-700 transition-colors cursor-pointer">
                   Cancelar
                 </button>
-                <button
-                  type="button"
-                  onClick={handleLote}
-                  className="px-5 py-2 text-sm font-semibold text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors cursor-pointer shadow-sm"
-                >
+                <button type="button" onClick={handleLote} className="px-5 py-2 text-sm font-semibold text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors cursor-pointer shadow-sm">
                   Sí, emitir {residentes.length} factura{residentes.length !== 1 ? 's' : ''}
                 </button>
               </div>
@@ -364,29 +448,18 @@ export default function AdminFacturacion() {
         </>
       )}
 
-      {/* Toast */}
       {toast && (
-        <div
-          className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-full shadow-lg text-sm font-medium animate-fade-in text-white transition-all ${
-            toast.tipo === 'error' ? 'bg-error' : 'bg-success'
-          }`}
-        >
+        <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-full shadow-lg text-sm font-medium animate-fade-in text-white transition-all ${toast.tipo === 'error' ? 'bg-error' : 'bg-success'}`}>
           {toast.tipo === 'success' ? '✓ ' : '✗ '}{toast.msg}
         </div>
       )}
-    </AdminShell>
+    </>
   )
 }
 
 // ─── Sub-componentes de UI ─────────────────────────────────────────────────
 
-function Campo({
-  label, error, children,
-}: {
-  label: string
-  error?: string
-  children: React.ReactNode
-}) {
+function Campo({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
   return (
     <div>
       <label className="block text-sm font-medium text-primary-900 mb-1.5">{label}</label>

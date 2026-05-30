@@ -8,9 +8,13 @@ import {
   formatearMonto,
   formatearPeriodo,
   estaVencida,
+  puedeMarcarsePagada,
+  fechaHoyISO,
   LABEL_FACTURA_TIPO,
   LABEL_FACTURA_ESTADO,
   BADGE_FACTURA_ESTADO,
+  LABEL_METODO_PAGO,
+  MENSAJE_YA_PAGADA,
 } from '../../lib/facturas'
 
 describe('formatearMonto', () => {
@@ -102,5 +106,47 @@ describe('LABEL_FACTURA_ESTADO y BADGE_FACTURA_ESTADO', () => {
 
   it('badge de pagada usa color success (verde)', () => {
     expect(BADGE_FACTURA_ESTADO.pagada).toContain('success')
+  })
+})
+
+// ─── Sprint 9 · HU-FACT-04 — transición a pagada ──────────────────────────────
+
+describe('puedeMarcarsePagada', () => {
+  it('una factura pendiente puede marcarse como pagada', () => {
+    expect(puedeMarcarsePagada('pendiente')).toBe(true)
+  })
+
+  it('una factura vencida puede marcarse como pagada', () => {
+    expect(puedeMarcarsePagada('vencida')).toBe(true)
+  })
+
+  it('una factura ya pagada NO puede volver a marcarse', () => {
+    expect(puedeMarcarsePagada('pagada')).toBe(false)
+  })
+})
+
+describe('LABEL_METODO_PAGO', () => {
+  it('cubre los 3 métodos de pago con etiqueta legible', () => {
+    expect(LABEL_METODO_PAGO.efectivo).toBe('Efectivo')
+    expect(LABEL_METODO_PAGO.transferencia).toBe('Transferencia')
+    expect(LABEL_METODO_PAGO.otro).toBe('Otro')
+  })
+})
+
+describe('MENSAJE_YA_PAGADA', () => {
+  it('es el aviso de idempotencia que muestra la UI (R3)', () => {
+    expect(MENSAJE_YA_PAGADA).toMatch(/ya estaba pagada/i)
+  })
+})
+
+describe('fechaHoyISO', () => {
+  it('devuelve la fecha local en formato YYYY-MM-DD', () => {
+    expect(fechaHoyISO()).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+  })
+
+  it('coincide con la fecha local del navegador (sin desfase UTC)', () => {
+    const hoy = new Date()
+    const esperado = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`
+    expect(fechaHoyISO()).toBe(esperado)
   })
 })

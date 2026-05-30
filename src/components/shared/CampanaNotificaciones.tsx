@@ -46,6 +46,20 @@ function getIconForTipo(tipo: TipoNotificacion) {
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" />
         </svg>
       )
+    // Sprint 9 · HU-FACT-04 — pago registrado (check verde)
+    case 'factura_pagada':
+      return (
+        <svg className="w-5 h-5 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      )
+    // Sprint 9 · HU-FACT-08 — recordatorio de vencimiento (reloj ámbar)
+    case 'factura_por_vencer':
+      return (
+        <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      )
     default:
       return (
         <svg className="w-5 h-5 text-warm-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -106,9 +120,9 @@ export default function CampanaNotificaciones() {
     setIsOpen(false)
     if (!notif.leida) void marcarComoLeida(notif.id)
 
-    if (notif.tipo === 'factura_nueva') {
-      // Navegar a la vista de facturas; el id se pasa como query param para
-      // que la página pueda pre-seleccionar el detalle de esa factura.
+    // Sprint 8/9 — todas las notificaciones de factura abren la vista del residente,
+    // pre-seleccionando el detalle vía el id en metadata (deep link).
+    if (notif.tipo === 'factura_nueva' || notif.tipo === 'factura_pagada' || notif.tipo === 'factura_por_vencer') {
       const facturaId = notif.metadata?.factura_id
       navigate(facturaId ? `/residente/facturas?id=${facturaId}` : '/residente/facturas')
       return

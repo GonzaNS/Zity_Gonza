@@ -22,12 +22,14 @@ import {
   LABEL_FACTURA_TIPO,
   LABEL_FACTURA_ESTADO,
   BADGE_FACTURA_ESTADO,
+  LABEL_METODO_PAGO,
   formatearMonto,
   formatearPeriodo,
   estaVencida,
   type Factura,
   type FacturaTipo,
 } from '../../lib/facturas'
+import { descargarComprobante } from '../../lib/comprobante'
 import zityLogo from '../../assets/zity_logo.png'
 
 // ─── Iconos por tipo de factura ─────────────────────────────────────────────
@@ -77,6 +79,8 @@ export default function ResidenteFacturas() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [filtro, setFiltro] = useState<FiltroFactura>('todas')
   const [seleccionada, setSeleccionada] = useState<Factura | null>(null)
+  const [descargando, setDescargando] = useState(false)
+  const [errorDescarga, setErrorDescarga] = useState<string | null>(null)
 
   const {
     facturas, loading, loadingMore, error, hayMas, cargarMas, totalPendiente,
@@ -144,6 +148,27 @@ export default function ResidenteFacturas() {
     navigate('/login', { replace: true })
   }
 
+  // Sprint 9 · PBI-S8-E01 — Descarga del comprobante PDF (solo facturas pagadas).
+  // Los datos provienen del perfil del residente autenticado (RLS garantiza que
+  // solo ve sus propias facturas; no puede generar el comprobante de otro, R4).
+  async function handleDescargar(factura: Factura) {
+    if (!profile || descargando) return
+    setDescargando(true)
+    setErrorDescarga(null)
+    try {
+      await descargarComprobante(factura, {
+        nombre: profile.nombre,
+        apellido: profile.apellido,
+        departamento: profile.departamento,
+      })
+    } catch {
+      setErrorDescarga('No se pudo generar el comprobante. Intenta de nuevo.')
+      setTimeout(() => setErrorDescarga(null), 4000)
+    } finally {
+      setDescargando(false)
+    }
+  }
+
   // Si hay una factura seleccionada, mostramos el panel de detalle
   if (seleccionada) {
     return (
@@ -151,6 +176,9 @@ export default function ResidenteFacturas() {
         factura={seleccionada}
         onVolver={() => setSeleccionada(null)}
         onSignOut={handleSignOut}
+        onDescargar={handleDescargar}
+        descargando={descargando}
+        errorDescarga={errorDescarga}
       />
     )
   }
@@ -255,6 +283,8 @@ export default function ResidenteFacturas() {
                   <CardFactura
                     factura={factura}
                     onSeleccionar={() => setSeleccionada(factura)}
+                    onDescargar={handleDescargar}
+                    descargando={descargando}
                   />
                 </li>
               ))}
@@ -272,72 +302,107 @@ export default function ResidenteFacturas() {
           </>
         )}
       </main>
+
+      {errorDescarga && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-full shadow-lg text-sm font-medium animate-fade-in text-white bg-error">
+          ✗ {errorDescarga}
+        </div>
+      )}
     </div>
   )
 }
 
 // ─── Tarjeta de factura ──────────────────────────────────────────────────────
 
-function CardFactura({ factura, onSeleccionar }: { factura: Factura; onSeleccionar: () => void }) {
+function CardFactura({
+  factura, onSeleccionar, onDescargar, descargando,
+}: {
+  factura: Factura
+  onSeleccionar: () => void
+  onDescargar: (f: Factura) => void
+  descargando: boolean
+}) {
   // Detectar si está vencida visualmente aunque el estado en BD no lo indique aún
   const estadoVisual = estaVencida(factura) && factura.estado === 'pendiente' ? 'vencida' : factura.estado
 
   return (
-    <button
-      type="button"
-      onClick={onSeleccionar}
-      className="w-full text-left bg-white border border-warm-200 rounded-xl p-5 hover:border-primary-300 hover:shadow-sm transition-all cursor-pointer group"
-    >
-      <div className="flex items-start justify-between gap-3 mb-4">
-        {/* Icono + tipo */}
-        <div className="flex items-center gap-3">
-          <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${COLOR_TIPO[factura.tipo]}`}>
-            {ICONO_TIPO[factura.tipo]}
+    <div className="bg-white border border-warm-200 rounded-xl overflow-hidden hover:border-primary-300 hover:shadow-sm transition-all group">
+      <button
+        type="button"
+        onClick={onSeleccionar}
+        className="w-full text-left p-5 cursor-pointer"
+      >
+        <div className="flex items-start justify-between gap-3 mb-4">
+          {/* Icono + tipo */}
+          <div className="flex items-center gap-3">
+            <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${COLOR_TIPO[factura.tipo]}`}>
+              {ICONO_TIPO[factura.tipo]}
+            </div>
+            <div>
+              <p className="font-semibold text-primary-900 text-sm leading-tight">
+                {LABEL_FACTURA_TIPO[factura.tipo]}
+              </p>
+              <p className="text-xs text-warm-400 mt-0.5">{formatearPeriodo(factura.periodo)}</p>
+            </div>
           </div>
-          <div>
-            <p className="font-semibold text-primary-900 text-sm leading-tight">
-              {LABEL_FACTURA_TIPO[factura.tipo]}
-            </p>
-            <p className="text-xs text-warm-400 mt-0.5">{formatearPeriodo(factura.periodo)}</p>
-          </div>
-        </div>
-        {/* Badge de estado */}
-        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[0.6875rem] font-semibold border shrink-0 ${BADGE_FACTURA_ESTADO[estadoVisual]}`}>
-          {LABEL_FACTURA_ESTADO[estadoVisual]}
-        </span>
-      </div>
-
-      {/* Monto */}
-      <p className="font-display text-3xl font-bold text-primary-900 leading-none mb-3">
-        {formatearMonto(factura.monto)}
-      </p>
-
-      {/* Vencimiento */}
-      <div className="flex items-center justify-between text-xs text-warm-400">
-        <span>
-          Vence:{' '}
-          <span className={estadoVisual === 'vencida' ? 'text-error font-semibold' : 'text-primary-800 font-medium'}>
-            {new Date(factura.vencimiento + 'T12:00:00').toLocaleDateString('es', {
-              day: 'numeric', month: 'long', year: 'numeric',
-            })}
+          {/* Badge de estado */}
+          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[0.6875rem] font-semibold border shrink-0 ${BADGE_FACTURA_ESTADO[estadoVisual]}`}>
+            {LABEL_FACTURA_ESTADO[estadoVisual]}
           </span>
-        </span>
-        <svg className="w-4 h-4 text-warm-300 group-hover:text-primary-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-        </svg>
-      </div>
-    </button>
+        </div>
+
+        {/* Monto */}
+        <p className="font-display text-3xl font-bold text-primary-900 leading-none mb-3">
+          {formatearMonto(factura.monto)}
+        </p>
+
+        {/* Vencimiento */}
+        <div className="flex items-center justify-between text-xs text-warm-400">
+          <span>
+            Vence:{' '}
+            <span className={estadoVisual === 'vencida' ? 'text-error font-semibold' : 'text-primary-800 font-medium'}>
+              {new Date(factura.vencimiento + 'T12:00:00').toLocaleDateString('es', {
+                day: 'numeric', month: 'long', year: 'numeric',
+              })}
+            </span>
+          </span>
+          <svg className="w-4 h-4 text-warm-300 group-hover:text-primary-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </div>
+      </button>
+
+      {/* Sprint 9 · PBI-S8-E01 — Descargar comprobante (solo facturas pagadas) */}
+      {factura.estado === 'pagada' && (
+        <div className="px-5 pb-4">
+          <button
+            type="button"
+            onClick={() => onDescargar(factura)}
+            disabled={descargando}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary-600 hover:text-primary-800 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            {descargando ? 'Generando…' : 'Descargar comprobante'}
+          </button>
+        </div>
+      )}
+    </div>
   )
 }
 
 // ─── Panel de detalle ────────────────────────────────────────────────────────
 
 function DetalleFactura({
-  factura, onVolver, onSignOut,
+  factura, onVolver, onSignOut, onDescargar, descargando, errorDescarga,
 }: {
   factura: Factura
   onVolver: () => void
   onSignOut: () => void
+  onDescargar: (f: Factura) => void
+  descargando: boolean
+  errorDescarga: string | null
 }) {
   const estadoVisual = estaVencida(factura) && factura.estado === 'pendiente' ? 'vencida' : factura.estado
 
@@ -400,6 +465,13 @@ function DetalleFactura({
               valor={formatearFecha(factura.vencimiento)}
               resaltado={estadoVisual === 'vencida'}
             />
+            {/* Sprint 9 · HU-FACT-04 — datos del pago registrado */}
+            {factura.estado === 'pagada' && (
+              <>
+                <FilaDetalle label="Fecha de pago" valor={factura.fecha_pago ? formatearFecha(factura.fecha_pago) : '—'} />
+                <FilaDetalle label="Método de pago" valor={factura.metodo_pago ? LABEL_METODO_PAGO[factura.metodo_pago] : '—'} />
+              </>
+            )}
             {factura.descripcion && (
               <div className="pt-2 border-t border-warm-100">
                 <p className="text-xs text-warm-400 mb-1">Descripción</p>
@@ -408,8 +480,21 @@ function DetalleFactura({
             )}
           </div>
 
-          {/* Botón volver */}
-          <div className="px-6 sm:px-8 pb-6 sm:pb-8">
+          {/* Acciones */}
+          <div className="px-6 sm:px-8 pb-6 sm:pb-8 space-y-3">
+            {factura.estado === 'pagada' && (
+              <button
+                type="button"
+                onClick={() => onDescargar(factura)}
+                disabled={descargando}
+                className="w-full h-11 text-sm font-semibold text-white bg-primary-600 rounded-xl hover:bg-primary-700 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                {descargando ? 'Generando comprobante…' : 'Descargar comprobante'}
+              </button>
+            )}
             <button
               type="button"
               onClick={onVolver}
@@ -420,6 +505,12 @@ function DetalleFactura({
           </div>
         </div>
       </main>
+
+      {errorDescarga && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-full shadow-lg text-sm font-medium animate-fade-in text-white bg-error">
+          ✗ {errorDescarga}
+        </div>
+      )}
     </div>
   )
 }

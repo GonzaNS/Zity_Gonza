@@ -85,6 +85,13 @@ export default defineConfig({
           functions: 80,
           branches: 80,
         },
+        // Sprint 9 — Helper centralizado del ciclo de cobro (DoD v2: ≥ 60 %).
+        'src/lib/facturas.ts': {
+          lines: 60,
+          statements: 60,
+          functions: 60,
+          branches: 60,
+        },
       },
     },
   },

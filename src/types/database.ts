@@ -4,7 +4,7 @@ export type EstadoInvitacion = 'pendiente' | 'aceptada' | 'expirada'
 export type EstadoSolicitud = 'pendiente' | 'asignada' | 'en_progreso' | 'resuelta' | 'cerrada'
 export type TipoSolicitud = 'mantenimiento' | 'reparacion' | 'queja' | 'sugerencia' | 'otro'
 export type CategoriaSolicitud = 'plomeria' | 'electricidad' | 'limpieza' | 'seguridad' | 'areas_comunes' | 'otro'
-export type TipoNotificacion = 'estado_cambio' | 'asignacion' | 'nueva_solicitud' | 'sistema' | 'alerta_rechazo' | 'factura_nueva'
+export type TipoNotificacion = 'estado_cambio' | 'asignacion' | 'nueva_solicitud' | 'sistema' | 'alerta_rechazo' | 'factura_nueva' | 'factura_pagada' | 'factura_por_vencer'
 
 export type Profile = {
   id: string
