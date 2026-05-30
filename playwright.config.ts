@@ -51,13 +51,24 @@ export default defineConfig({
     },
   ],
 
-  // Levantamos el dev server de Vite si no está corriendo. `reuseExistingServer`
-  // detecta el que el desarrollador ya tenga abierto.
+  // Servidor de la app bajo test.
+  //
+  // En CI servimos el BUILD de producción (`vite preview`) en vez del dev
+  // server. El dev server compila los chunks lazy on-demand al navegar, y en el
+  // runner (CPU lenta + rutas lazy con recharts + latencia a Supabase sa-east-1)
+  // la navegación post-login tardaba >15 s, haciendo timeout `waitForURL` aunque
+  // el login fuera exitoso. El preview sirve chunks ya compilados → navegación
+  // inmediata, y además testeamos el artefacto real que se despliega.
+  //
+  // Localmente seguimos con el dev server; `reuseExistingServer` reaprovecha el
+  // que el desarrollador ya tenga abierto en 5173.
   webServer: {
-    command: 'npm run dev',
+    command: process.env.CI
+      ? 'npm run build && npm run preview -- --port 5173 --strictPort'
+      : 'npm run dev',
     url: baseURL,
     reuseExistingServer: !process.env.CI,
-    timeout: 60_000,
+    timeout: 120_000,
     stdout: 'pipe',
     stderr: 'pipe',
   },

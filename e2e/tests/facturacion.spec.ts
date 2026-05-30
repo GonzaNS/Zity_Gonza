@@ -19,10 +19,14 @@ const RESIDENTE_EMAIL    = process.env.E2E_RESIDENTE_EMAIL    ?? 'laura@zity-dem
 const RESIDENTE_PASSWORD = process.env.E2E_RESIDENTE_PASSWORD ?? 'Residente1!'
 
 // Período único por corrida para evitar colisión con el constraint
-// UNIQUE(residente_id, tipo, periodo). Usamos un mes futuro: mes actual + 6 meses.
+// UNIQUE(residente_id, tipo, periodo). El offset depende de la hora (epoch) para
+// que cada corrida use un mes futuro distinto; antes era un valor fijo (mes+6),
+// por lo que la 2ª corrida del mismo día chocaba con la factura ya creada.
+// Rango ~12..611 meses al futuro (≈50 años), colisión despreciable entre runs.
 function periodoUnicoParaTest(): string {
+  const offsetMeses = 12 + (Math.floor(Date.now() / 1000) % 600)
   const d = new Date()
-  d.setMonth(d.getMonth() + 6)
+  d.setMonth(d.getMonth() + offsetMeses)
   return d.toISOString().slice(0, 7)  // 'YYYY-MM'
 }
 
