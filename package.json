@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc -p api/tsconfig.json --noEmit",
     "preview": "vite preview",
     "test": "vitest",
     "test:run": "vitest run --passWithNoTests",

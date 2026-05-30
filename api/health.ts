@@ -12,6 +12,11 @@
 
 import { createClient } from '@supabase/supabase-js'
 
+// Vercel type-chequea las funciones de /api con el tsconfig raíz, cuyo
+// `types: ['vitest/globals']` no incluye @types/node, así que `process` no está
+// tipado. Lo declaramos localmente (en el runtime Node de Vercel sí existe).
+declare const process: { env: Record<string, string | undefined> }
+
 type Estado = 'ok' | 'error'
 
 export default async function handler(): Promise<Response> {
