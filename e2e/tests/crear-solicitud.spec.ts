@@ -27,7 +27,9 @@ test.describe('Crear solicitud — flujo del residente', () => {
     await expect(page.getByRole('heading', { name: /bienvenido/i })).toBeVisible()
 
     await page.getByLabel(/correo electrónico/i).fill(RESIDENTE_EMAIL)
-    await page.getByLabel(/contraseña/i).fill(RESIDENTE_PASSWORD)
+    // Regex anclado: el input de password y el botón "Mostrar contraseña"
+    // comparten el texto "contraseña"; `^...$` desambigua hacia el input.
+    await page.getByLabel(/^contraseña$/i).fill(RESIDENTE_PASSWORD)
     await page.getByRole('button', { name: /iniciar sesión/i }).click()
 
     // ── 2. Aterriza en /residente ─────────────────────────────────────────────
@@ -67,9 +69,12 @@ test.describe('Crear solicitud — flujo del residente', () => {
       timeout: 15_000,
     })
 
-    // El texto "Solicitud SOL-xxxx creada" debe aparecer
-    const confirmTexto = await page.getByText(/solicitud .* creada/i).textContent()
-    expect(confirmTexto).toMatch(/SOL-/i)
+    // El encabezado "Solicitud <código> creada" debe aparecer. Anclamos el regex
+    // (^...$) para no colisionar con la descripción ("...solicitud fue creada...")
+    // ni con datos de corridas previas. No fijamos el prefijo (la app genera
+    // códigos tipo ZIT-016): basta verificar el formato <LETRAS>-<números>.
+    const confirmTexto = await page.getByText(/^solicitud \S+ creada$/i).textContent()
+    expect(confirmTexto).toMatch(/[A-Z]{2,}-\d+/i)
 
     // ── 7. Cerrar modal con "Listo" ───────────────────────────────────────────
     await page.getByRole('button', { name: /listo/i }).click()

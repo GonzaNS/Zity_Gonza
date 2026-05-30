@@ -11,7 +11,12 @@ import { defineConfig, devices } from '@playwright/test'
 
 // `webServer` solo levanta `npm run dev` si nadie está sirviendo ya en 5173.
 // Esto permite iterar localmente con la app abierta sin levantarla dos veces.
-const baseURL = process.env.E2E_BASE_URL ?? 'http://localhost:5173'
+//
+// Usamos `||` (no `??`): en el trigger `push` el workflow pasa E2E_BASE_URL=''
+// (string vacío, no nullish), y queremos que ese caso caiga al dev server local
+// igual que cuando la variable no está definida. Con `??` el '' se colaba como
+// baseURL y `page.goto('/login')` fallaba con "Cannot navigate to invalid URL".
+const baseURL = process.env.E2E_BASE_URL || 'http://localhost:5173'
 
 export default defineConfig({
   testDir: './e2e',

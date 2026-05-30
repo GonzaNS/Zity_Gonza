@@ -29,7 +29,9 @@ function periodoUnicoParaTest(): string {
 async function login(page: Page, email: string, password: string) {
   await page.goto('/login')
   await page.getByLabel(/correo electrónico/i).fill(email)
-  await page.getByLabel(/contraseña/i).fill(password)
+  // Regex anclado: el input de password y el botón "Mostrar contraseña"
+  // comparten el texto "contraseña"; `^...$` desambigua hacia el input.
+  await page.getByLabel(/^contraseña$/i).fill(password)
   await page.getByRole('button', { name: /iniciar sesión/i }).click()
 }
 
@@ -56,8 +58,12 @@ test.describe('Facturación — emisión individual + vista del residente', () =
     // 'Emisión individual' está seleccionada por defecto, no hace falta cambiarla.
     await page.locator('#f-residente').waitFor({ state: 'visible' })
 
-    // Seleccionar a Laura (la primera opción que tenga "Laura" en el texto)
-    await page.locator('#f-residente').selectOption({ label: /Vega, Laura/i })
+    // Seleccionar a Laura: selectOption no acepta regex en `label`, así que
+    // localizamos su <option> por texto y seleccionamos por su value (UUID).
+    const opcionLaura = page.locator('#f-residente option', { hasText: /Laura/i }).first()
+    const valorLaura = await opcionLaura.getAttribute('value')
+    expect(valorLaura).toBeTruthy()
+    await page.locator('#f-residente').selectOption(valorLaura!)
     await page.locator('#f-tipo').selectOption('luz')
     await page.locator('#f-monto').fill(monto)
     await page.locator('#f-periodo').fill(periodo)
