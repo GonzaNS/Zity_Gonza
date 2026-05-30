@@ -1,25 +1,35 @@
 // Sprint 9 · Chore técnico — Endpoint /health (cierra el último criterio de DoD v2).
 //
-// Función serverless de Vercel (runtime Node) que verifica las tres dependencias
-// críticas del backend y responde un JSON compacto:
+// Función serverless de Vercel (runtime Node, @vercel/node) que verifica las tres
+// dependencias críticas del backend y responde un JSON compacto:
 //   { status, db, auth, storage, version }
 //
-// Seguridad (R6 / OWASP): la respuesta NUNCA incluye mensajes de error internos
-// ni secretos — solo 'ok' | 'error' por dependencia. Los detalles se loguean en
-// el servidor. Reusa SUPABASE_SERVICE_ROLE_KEY (Sprint 3); sin variables nuevas.
+// Usa la firma Node clásica (req, res) — la que espera @vercel/node en un proyecto
+// Vite — y completa la respuesta con res.status().json(). (Devolver un `Response`
+// estilo Web API deja la petición colgada → 504 FUNCTION_INVOCATION_TIMEOUT.)
 //
-// Se expone como /health vía el rewrite de vercel.json.
+// Seguridad (R6 / OWASP): la respuesta NUNCA incluye mensajes de error internos ni
+// secretos — solo 'ok' | 'error' por dependencia. Los detalles van a los logs.
+// Reusa SUPABASE_SERVICE_ROLE_KEY (Sprint 3); sin variables nuevas.
 
 import { createClient } from '@supabase/supabase-js'
 
-// Vercel type-chequea las funciones de /api con el tsconfig raíz, cuyo
-// `types: ['vitest/globals']` no incluye @types/node, así que `process` no está
-// tipado. Lo declaramos localmente (en el runtime Node de Vercel sí existe).
+// Vercel type-chequea /api con el tsconfig raíz (sin @types/node); declaramos lo
+// mínimo del runtime Node que usamos para evitar depender de @types/node.
 declare const process: { env: Record<string, string | undefined> }
+
+/** Forma mínima del response de @vercel/node que usamos (evita la dep de tipos). */
+type VercelRes = {
+  setHeader: (name: string, value: string) => void
+  status: (code: number) => VercelRes
+  json: (body: unknown) => void
+}
 
 type Estado = 'ok' | 'error'
 
-export default async function handler(): Promise<Response> {
+export default async function handler(_req: unknown, res: VercelRes): Promise<void> {
+  res.setHeader('cache-control', 'no-store')
+
   const url = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   const version =
@@ -33,7 +43,8 @@ export default async function handler(): Promise<Response> {
 
   if (!url || !serviceKey) {
     console.error('[health] Faltan SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY')
-    return json({ status: 'error', db, auth, storage, version }, 503)
+    res.status(503).json({ status: 'error', db, auth, storage, version })
+    return
   }
 
   const supabase = createClient(url, serviceKey, {
@@ -65,12 +76,5 @@ export default async function handler(): Promise<Response> {
   }
 
   const allOk = db === 'ok' && auth === 'ok' && storage === 'ok'
-  return json({ status: allOk ? 'ok' : 'error', db, auth, storage, version }, allOk ? 200 : 503)
-}
-
-function json(body: unknown, status: number): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { 'content-type': 'application/json', 'cache-control': 'no-store' },
-  })
+  res.status(allOk ? 200 : 503).json({ status: allOk ? 'ok' : 'error', db, auth, storage, version })
 }
