@@ -53,8 +53,8 @@ Deno.serve(async (req: Request) => {
     const periodoLabel = new Date(Number(year), Number(month) - 1, 1)
       .toLocaleDateString("es", { month: "long", year: "numeric" })
 
-    const montoLabel = new Intl.NumberFormat("es-MX", {
-      style: "currency", currency: "MXN", minimumFractionDigits: 2,
+    const montoLabel = new Intl.NumberFormat("es-PE", {
+      style: "currency", currency: "PEN", minimumFractionDigits: 2,
     }).format(monto)
 
     const vencLabel = new Date(vencimiento + "T12:00:00").toLocaleDateString("es", {

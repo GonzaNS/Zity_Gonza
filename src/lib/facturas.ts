@@ -95,13 +95,13 @@ export type TotalesPeriodo = {
 // ─── Utilidades ───────────────────────────────────────────────────────────────
 
 /**
- * Formatea un monto numérico como moneda local (es-MX, MXN).
- * Ej: 1500.50 → '$1,500.50'
+ * Formatea un monto numérico como moneda local (es-PE, PEN — soles peruanos).
+ * Ej: 1500.50 → 'S/ 1,500.50'
  */
 export function formatearMonto(monto: number): string {
-  return new Intl.NumberFormat('es-MX', {
+  return new Intl.NumberFormat('es-PE', {
     style: 'currency',
-    currency: 'MXN',
+    currency: 'PEN',
     minimumFractionDigits: 2,
   }).format(monto)
 }

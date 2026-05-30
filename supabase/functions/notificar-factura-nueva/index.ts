@@ -54,8 +54,8 @@ Deno.serve(async (req: Request) => {
     const periodoLabel = periodoFecha.toLocaleDateString("es", { month: "long", year: "numeric" })
 
     // Formato de monto con 2 decimales
-    const montoLabel = new Intl.NumberFormat("es-MX", {
-      style: "currency", currency: "MXN", minimumFractionDigits: 2,
+    const montoLabel = new Intl.NumberFormat("es-PE", {
+      style: "currency", currency: "PEN", minimumFractionDigits: 2,
     }).format(monto)
 
     // Fecha de vencimiento legible: "2026-05-31" → "31 de mayo de 2026"
