@@ -92,6 +92,13 @@ export default defineConfig({
           functions: 60,
           branches: 60,
         },
+        // Sprint 10 — Core del módulo Tienda (DoD v2: ≥ 60 %).
+        'src/lib/tienda.ts': {
+          lines: 60,
+          statements: 60,
+          functions: 60,
+          branches: 60,
+        },
       },
     },
   },

@@ -51,5 +51,7 @@ curl -s https://staging.zity.app/health | jq
 # → { "status": "ok", "db": "ok", "auth": "ok", "storage": "ok", "version": "…" }
 ```
 
-> El deploy a staging es manual en el Sprint 9. La **verificación post-deploy
-> automática** (CD en cada merge a `main`) llega como chore del **Sprint 10**.
+> Sprint 9: el deploy a staging era manual. **Sprint 10:** la verificación
+> post-deploy automática (CD en cada merge a `main`) ya está implementada — ver
+> [`cd-staging.md`](./cd-staging.md) y [ADR-013](../adr/013-cd-staging.md). Con
+> esto se cierra el último criterio de **DoD v2**.

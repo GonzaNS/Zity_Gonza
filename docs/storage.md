@@ -7,6 +7,7 @@
 | Bucket | Visibilidad | MIME permitidos | Tamaño máx. | Sprint |
 |---|---|---|---|---|
 | `solicitudes-fotos` | Privado | `image/jpeg`, `image/png` | 5 MB | 3 |
+| `productos-fotos` | Privado | `image/jpeg`, `image/png` | 2 MB | 10 |
 
 ## Naming convention
 
@@ -43,6 +44,31 @@ La policy de SELECT es deliberadamente abierta a authenticated dentro del bucket
 
 1. La caducidad de las URLs firmadas (1 hora).
 2. El RLS de `public.solicitudes`, que filtra qué solicitudes puede ver cada rol antes de que la app pida firmar URLs.
+
+## Bucket `productos-fotos` (Sprint 10 · Tienda)
+
+Fotos del catálogo de la tienda. Reusa el patrón de `solicitudes-fotos` con dos
+diferencias: el límite es **2 MB** y **solo el admin escribe** (las sube desde
+`/admin/tienda`), por lo que las policies validan el **rol**, no la carpeta del
+usuario.
+
+**Naming:** `{producto_id}/{timestamp}_{nombre_seguro}` — la fuente de verdad es
+`pathFotoProducto` en `src/lib/tienda.ts`. `productos.imagen_url` guarda el
+**path** (no la URL pública); se firma al mostrar con `createSignedUrls(paths, 3600)`.
+
+A diferencia de `solicitudes-fotos` (creado a mano en el dashboard), este bucket
+y sus policies se **versionan** en la migración `20260530150000_sprint10_tienda.sql`.
+
+| Policy | Comando | Roles | Filtro |
+|---|---|---|---|
+| `productos_fotos_admin_insert` | INSERT | authenticated | `bucket_id='productos-fotos' AND get_user_rol()='admin'` |
+| `productos_fotos_select_authenticated` | SELECT | authenticated | `bucket_id='productos-fotos'` |
+| `productos_fotos_admin_update` | UPDATE | authenticated | `bucket_id='productos-fotos' AND get_user_rol()='admin'` |
+| `productos_fotos_admin_delete` | DELETE | authenticated | `bucket_id='productos-fotos' AND get_user_rol()='admin'` |
+
+La lectura es abierta a authenticated (residente y técnico ven el catálogo); el
+control efectivo lo dan las URLs firmadas (1 h) y que solo el admin gestiona el
+contenido. Sin foto → la UI muestra un placeholder.
 
 ## Configuración local
 

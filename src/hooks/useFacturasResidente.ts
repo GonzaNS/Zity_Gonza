@@ -20,6 +20,8 @@ export type UseFacturasResidenteResult = {
   hayMas: boolean
   cargarMas: () => void
   totalPendiente: number | null
+  /** Sprint 10 · HU-FACT-09 — recarga la primera página (tras un pago en línea). */
+  recargar: () => void
 }
 
 export function useFacturasResidente(filtro: FiltroFactura): UseFacturasResidenteResult {
@@ -141,5 +143,5 @@ export function useFacturasResidente(filtro: FiltroFactura): UseFacturasResident
     setLoadingMore(false)
   }, [filtro, loadingMore, hayMas])
 
-  return { facturas, loading, loadingMore, error, hayMas, cargarMas, totalPendiente }
+  return { facturas, loading, loadingMore, error, hayMas, cargarMas, totalPendiente, recargar: cargarPrimera }
 }

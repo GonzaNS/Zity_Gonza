@@ -14,8 +14,8 @@ import { supabase } from './supabase'
 
 export type FacturaTipo       = 'luz' | 'agua' | 'pension' | 'multa'
 export type FacturaEstado     = 'pendiente' | 'pagada' | 'vencida'
-/** Sprint 9 · HU-FACT-04 — método de pago registrado por el admin. */
-export type FacturaMetodoPago = 'efectivo' | 'transferencia' | 'otro'
+/** Sprint 9 · HU-FACT-04 — método de pago. 'tarjeta' = pago en línea del residente (S10). */
+export type FacturaMetodoPago = 'efectivo' | 'transferencia' | 'otro' | 'tarjeta'
 
 // ─── Tipo principal ───────────────────────────────────────────────────────────
 
@@ -77,6 +77,7 @@ export const LABEL_METODO_PAGO: Record<FacturaMetodoPago, string> = {
   efectivo:      'Efectivo',
   transferencia: 'Transferencia',
   otro:          'Otro',
+  tarjeta:       'Tarjeta (en línea)',
 }
 
 /** Aviso de idempotencia (R3) que muestra la UI al re-pagar una factura ya pagada. */
@@ -209,5 +210,29 @@ export async function obtenerTotalesPeriodo(periodo: string): Promise<TotalesPer
     cobrado:   Number(d.cobrado   ?? 0),
     pendiente: Number(d.pendiente ?? 0),
     vencido:   Number(d.vencido   ?? 0),
+  }
+}
+
+/**
+ * Sprint 10 · HU-FACT-09 — Pago en línea SIMULADO de una factura por su propio
+ * residente, vía la RPC pagar_factura_residente (SECURITY DEFINER, valida que la
+ * factura es suya). Marca 'pagada' con metodo_pago='tarjeta' y fecha de hoy
+ * (America/Lima). Idempotente; el trigger after_factura_paid emite la
+ * notificación 'factura_pagada' y suma el monto a los totales del admin.
+ */
+export async function pagarFacturaResidente(facturaId: string): Promise<ResultadoPago> {
+  const { data, error } = await supabase.rpc('pagar_factura_residente', {
+    p_factura_id: facturaId,
+  })
+
+  if (error) {
+    return { ok: false, yaPagada: false, mensaje: error.message, error: error.message }
+  }
+
+  const r = (data ?? {}) as { ok?: boolean; ya_pagada?: boolean; mensaje?: string }
+  return {
+    ok: r.ok ?? true,
+    yaPagada: r.ya_pagada ?? false,
+    mensaje: r.mensaje ?? '',
   }
 }

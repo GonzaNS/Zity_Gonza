@@ -117,6 +117,14 @@ export default function ResidenteDashboard() {
             >
               Mis facturas
             </Link>
+            {/* Sprint 10 · HU-TIENDA-05 — link a la tienda */}
+            <Link
+              to="/residente/tienda"
+              className="text-sm text-primary-700 hover:text-primary-900 font-medium hidden sm:inline"
+              title="Ver la tienda del edificio"
+            >
+              Tienda
+            </Link>
             <button
               onClick={handleSignOut}
               className="text-sm text-warm-400 hover:text-error transition-colors font-medium whitespace-nowrap cursor-pointer"

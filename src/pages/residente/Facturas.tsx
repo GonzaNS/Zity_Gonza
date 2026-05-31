@@ -26,10 +26,12 @@ import {
   formatearMonto,
   formatearPeriodo,
   estaVencida,
+  puedeMarcarsePagada,
   type Factura,
   type FacturaTipo,
 } from '../../lib/facturas'
 import { descargarComprobante } from '../../lib/comprobante'
+import ModalPagoSimulado from '../../components/residente/ModalPagoSimulado'
 import zityLogo from '../../assets/zity_logo.png'
 
 // ─── Iconos por tipo de factura ─────────────────────────────────────────────
@@ -81,10 +83,22 @@ export default function ResidenteFacturas() {
   const [seleccionada, setSeleccionada] = useState<Factura | null>(null)
   const [descargando, setDescargando] = useState(false)
   const [errorDescarga, setErrorDescarga] = useState<string | null>(null)
+  // Sprint 10 · HU-FACT-09 — pago en línea simulado
+  const [facturaAPagar, setFacturaAPagar] = useState<Factura | null>(null)
+  const [toastPago, setToastPago] = useState<string | null>(null)
 
   const {
-    facturas, loading, loadingMore, error, hayMas, cargarMas, totalPendiente,
+    facturas, loading, loadingMore, error, hayMas, cargarMas, totalPendiente, recargar,
   } = useFacturasResidente(filtro)
+
+  // Tras un pago exitoso: cierra el modal, vuelve a la lista, avisa y recarga.
+  function handlePagado(mensaje: string) {
+    setFacturaAPagar(null)
+    setSeleccionada(null)
+    setToastPago(mensaje)
+    setTimeout(() => setToastPago(null), 4500)
+    recargar()
+  }
 
   // Sprint 8 · HU-FACT-05 — Deep link desde la campana de notificaciones.
   // Si la URL tiene ?id=<factura_id>, busca la factura en la lista cargada;
@@ -124,9 +138,7 @@ export default function ResidenteFacturas() {
     const idParam = searchParams.get('id')
     if (!idParam || loading || seleccionada) return
     // resolverDeepLink hace setSeleccionada de forma síncrona en el fast-path en
-    // memoria (deep-link desde la campana de notificaciones). Es intencional;
-    // la regla set-state-in-effect lo marca como falso positivo en esta línea.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    // memoria (deep-link desde la campana de notificaciones). Es intencional.
     void resolverDeepLink(idParam)
   }, [searchParams, loading, seleccionada, resolverDeepLink])
 
@@ -172,14 +184,24 @@ export default function ResidenteFacturas() {
   // Si hay una factura seleccionada, mostramos el panel de detalle
   if (seleccionada) {
     return (
-      <DetalleFactura
-        factura={seleccionada}
-        onVolver={() => setSeleccionada(null)}
-        onSignOut={handleSignOut}
-        onDescargar={handleDescargar}
-        descargando={descargando}
-        errorDescarga={errorDescarga}
-      />
+      <>
+        <DetalleFactura
+          factura={seleccionada}
+          onVolver={() => setSeleccionada(null)}
+          onSignOut={handleSignOut}
+          onDescargar={handleDescargar}
+          descargando={descargando}
+          errorDescarga={errorDescarga}
+          onPagar={() => setFacturaAPagar(seleccionada)}
+        />
+        {facturaAPagar && (
+          <ModalPagoSimulado
+            factura={facturaAPagar}
+            onClose={() => setFacturaAPagar(null)}
+            onPagado={handlePagado}
+          />
+        )}
+      </>
     )
   }
 
@@ -285,6 +307,7 @@ export default function ResidenteFacturas() {
                     onSeleccionar={() => setSeleccionada(factura)}
                     onDescargar={handleDescargar}
                     descargando={descargando}
+                    onPagar={() => setFacturaAPagar(factura)}
                   />
                 </li>
               ))}
@@ -308,6 +331,22 @@ export default function ResidenteFacturas() {
           ✗ {errorDescarga}
         </div>
       )}
+
+      {/* Sprint 10 · HU-FACT-09 — toast de pago en línea */}
+      {toastPago && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] px-5 py-3 rounded-full shadow-lg text-sm font-medium animate-fade-in text-white bg-success">
+          ✓ {toastPago}
+        </div>
+      )}
+
+      {/* Sprint 10 · HU-FACT-09 — modal de pago simulado (desde la lista) */}
+      {facturaAPagar && (
+        <ModalPagoSimulado
+          factura={facturaAPagar}
+          onClose={() => setFacturaAPagar(null)}
+          onPagado={handlePagado}
+        />
+      )}
     </div>
   )
 }
@@ -315,12 +354,13 @@ export default function ResidenteFacturas() {
 // ─── Tarjeta de factura ──────────────────────────────────────────────────────
 
 function CardFactura({
-  factura, onSeleccionar, onDescargar, descargando,
+  factura, onSeleccionar, onDescargar, descargando, onPagar,
 }: {
   factura: Factura
   onSeleccionar: () => void
   onDescargar: (f: Factura) => void
   descargando: boolean
+  onPagar: () => void
 }) {
   // Detectar si está vencida visualmente aunque el estado en BD no lo indique aún
   const estadoVisual = estaVencida(factura) && factura.estado === 'pendiente' ? 'vencida' : factura.estado
@@ -388,6 +428,22 @@ function CardFactura({
           </button>
         </div>
       )}
+
+      {/* Sprint 10 · HU-FACT-09 — Pagar en línea (pendiente o vencida) */}
+      {puedeMarcarsePagada(factura.estado) && (
+        <div className="px-5 pb-4">
+          <button
+            type="button"
+            onClick={onPagar}
+            className="w-full h-9 inline-flex items-center justify-center gap-1.5 text-sm font-semibold text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors cursor-pointer shadow-sm"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+            </svg>
+            Pagar
+          </button>
+        </div>
+      )}
     </div>
   )
 }
@@ -395,7 +451,7 @@ function CardFactura({
 // ─── Panel de detalle ────────────────────────────────────────────────────────
 
 function DetalleFactura({
-  factura, onVolver, onSignOut, onDescargar, descargando, errorDescarga,
+  factura, onVolver, onSignOut, onDescargar, descargando, errorDescarga, onPagar,
 }: {
   factura: Factura
   onVolver: () => void
@@ -403,6 +459,7 @@ function DetalleFactura({
   onDescargar: (f: Factura) => void
   descargando: boolean
   errorDescarga: string | null
+  onPagar: () => void
 }) {
   const estadoVisual = estaVencida(factura) && factura.estado === 'pendiente' ? 'vencida' : factura.estado
 
@@ -493,6 +550,18 @@ function DetalleFactura({
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
                 {descargando ? 'Generando comprobante…' : 'Descargar comprobante'}
+              </button>
+            )}
+            {puedeMarcarsePagada(factura.estado) && (
+              <button
+                type="button"
+                onClick={onPagar}
+                className="w-full h-11 text-sm font-semibold text-white bg-primary-600 rounded-xl hover:bg-primary-700 transition-all cursor-pointer flex items-center justify-center gap-2 shadow-sm"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                </svg>
+                Pagar en línea
               </button>
             )}
             <button

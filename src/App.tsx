@@ -22,8 +22,10 @@ const AdminSolicitudes = lazy(() => import('./pages/admin/Solicitudes'))
 const AdminAuditoria = lazy(() => import('./pages/admin/Auditoria'))
 const AdminMetricas = lazy(() => import('./pages/admin/Metricas'))     // Sprint 7 · PBI-22
 const AdminFacturacion = lazy(() => import('./pages/admin/Facturacion')) // Sprint 8 · HU-FACT-02
+const AdminTienda = lazy(() => import('./pages/admin/Tienda')) // Sprint 10 · HU-TIENDA-02
 const ResidenteDashboard = lazy(() => import('./pages/ResidenteDashboard'))
 const ResidenteFacturas = lazy(() => import('./pages/residente/Facturas')) // Sprint 8 · HU-FACT-03
+const ResidenteTienda = lazy(() => import('./pages/residente/Tienda')) // Sprint 10 · HU-TIENDA-05
 const TecnicoDashboard = lazy(() => import('./pages/TecnicoDashboard'))
 const Perfil = lazy(() => import('./pages/Perfil'))
 const Notificaciones = lazy(() => import('./pages/Notificaciones'))
@@ -102,6 +104,12 @@ export default function App() {
                 <AdminFacturacion />
               </ProtectedRoute>
             } />
+            {/* Sprint 10 · HU-TIENDA-02 — Gestión del catálogo de la tienda */}
+            <Route path="/admin/tienda" element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminTienda />
+              </ProtectedRoute>
+            } />
             <Route path="/residente" element={
               <ProtectedRoute allowedRoles={['residente']}>
                 <ResidenteDashboard />
@@ -111,6 +119,12 @@ export default function App() {
             <Route path="/residente/facturas" element={
               <ProtectedRoute allowedRoles={['residente']}>
                 <ResidenteFacturas />
+              </ProtectedRoute>
+            } />
+            {/* Sprint 10 · HU-TIENDA-05 — Catálogo de la tienda (residente) */}
+            <Route path="/residente/tienda" element={
+              <ProtectedRoute allowedRoles={['residente']}>
+                <ResidenteTienda />
               </ProtectedRoute>
             } />
             <Route path="/tecnico" element={

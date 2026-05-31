@@ -122,6 +122,7 @@ export const ENTIDADES_AUDIT_FILTRO: ReadonlyArray<string> = [
   'invitaciones',
   'notificaciones',
   'facturas',        // Sprint 9 · HU-FACT-04 — pagos registrados
+  'productos',       // Sprint 10 · HU-TIENDA-02 — alta/baja/edición del catálogo
 ] as const
 
 /** Acciones que también aparecen en audit_log pero las generan Edge Functions
@@ -140,6 +141,13 @@ export const ACCIONES_AUDIT_COMPLETO: ReadonlyArray<string> = [
   'desbloquear_cuenta',
   // Origen: RPC `registrar_pago_factura` (Sprint 9)
   'registrar_pago_factura',
+  // Origen: RPC `pagar_factura_residente` (Sprint 10 · HU-FACT-09)
+  'pagar_factura_residente',
+  // Origen: trigger log_producto_cambio (Sprint 10 · HU-TIENDA-02)
+  'crear_producto',
+  'editar_producto',
+  'baja_producto',
+  'reactivar_producto',
 ] as const
 
 /** Etiqueta humana para presentar la acción en la vista admin. */
@@ -159,6 +167,11 @@ export function labelAccion(accion: string): string {
     bloquear_cuenta: 'Bloquear cuenta',
     desbloquear_cuenta: 'Desbloquear cuenta',
     registrar_pago_factura: 'Registrar pago de factura',
+    pagar_factura_residente: 'Pago en línea (residente)',
+    crear_producto: 'Crear producto',
+    editar_producto: 'Editar producto',
+    baja_producto: 'Dar de baja producto',
+    reactivar_producto: 'Reactivar producto',
   }
   return labels[accion] ?? accion
 }

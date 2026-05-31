@@ -70,3 +70,18 @@
 - Las tablas auxiliares no expuestas a la API (ej: `facturas_secuencia`) tienen RLS
   habilitada sin políticas (las toca solo un trigger `SECURITY DEFINER`).
 - `/health` no expone detalles de error ni secretos (solo `ok`/`error` por dependencia).
+
+## 9. Constantes de UI (Retro S10 · Acción 2)
+
+Umbrales y constantes de presentación centralizados para no re-discutirlos en cada
+Refinement. La fuente de verdad en código es `src/lib/tienda.ts` (Tienda) y los
+módulos `lib/*` de cada dominio; los componentes importan de ahí, sin números mágicos.
+
+| Constante | Valor | Dónde (código) | Motivo |
+|---|---|---|---|
+| Stock bajo → badge "Pocas unidades" | `stock ≤ 5` | `STOCK_BAJO_UMBRAL` | Debate del S10 (≤ 5 vs ≤ 3); se fijó **≤ 5**. |
+| Stock agotado → badge "Agotado" | `stock = 0` | `estadoStock` | La tarjeta se atenúa; la validación de compra es del S11. |
+| Debounce de búsqueda del catálogo | `300 ms` | `BUSQUEDA_DEBOUNCE_MS` | Evita una consulta por cada tecla (HU-TIENDA-06). |
+| Peso máx. de foto de producto | `2 MB` | `PRODUCTO_IMAGEN_MAX_BYTES` | Más estricto que solicitudes (5 MB) por el volumen del catálogo. |
+| Paginación del catálogo (lazy) | `24` | `CATALOGO_PAGE_SIZE` | Grilla del residente, carga de 24 en 24. |
+| Tipos de imagen permitidos | `JPEG`, `PNG` | `*_IMAGEN_MIME_PERMITIDOS` | Consistente entre solicitudes y productos. |
