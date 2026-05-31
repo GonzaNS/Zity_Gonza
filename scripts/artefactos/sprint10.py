@@ -53,6 +53,11 @@ B(cover(
          "(entran como chore del S14). 2 h, P2."),
         ("Variables nuevas",
          "VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID (Secrets de GitHub) para el deploy automático a Vercel"),
+        ("Mejoras del profesor",
+         "Addendum al Sprint 10 (≈8 h adicionales, recomendadas por el profesor e incorporadas al Sprint Planning, "
+         "sin alterar el compromiso base de 13 h de la Tienda v1): MP-01 seed histórico de 3 años de datos de "
+         "demostración · MP-02 pago en línea (simulado) de facturas por el residente (HU-FACT-09) · MP-03 encuesta "
+         "de usabilidad (escala Likert tipo SUS) vía Google Form. Ver el Sprint Planning (§1)."),
         ("Nota", "Documento académico — Datos ficticios sin PII real"),
     ],
 ))
@@ -116,6 +121,173 @@ B(table(
     ],
     [0.95, 2.75, 0.75, 0.7, 0.55, 1.0]))
 B(para("<b>Total estimado:</b> 13 horas comprometidas + 2 h de buffer (techo de 15 h)."))
+
+# ----- Addendum: mejoras recomendadas por el profesor (junto a los PBIs) ----- #
+B(sub("Mejoras recomendadas por el profesor — addendum al Sprint 10"))
+B(note("El Profesor del curso (stakeholder académico) recomendó tres mejoras para acercar el producto a un escenario "
+       "real y validar su usabilidad. Se incorporan al alcance del Sprint 10 ADEMÁS del compromiso base de 13 h de la "
+       "Tienda v1 (≈8 h adicionales) y se colocan aquí, junto a los PBIs del Sprint, para verlas en conjunto. El "
+       "núcleo del Sprint y su velocidad se mantienen; estas mejoras se reportan por separado."))
+B(goal("Addendum del Sprint 10 — (1) cargar 3 años de datos de demostración para dar realismo a las métricas y al "
+       "dashboard ejecutivo; (2) permitir al residente pagar sus facturas en línea (pago simulado, listo para una "
+       "pasarela real); (3) medir la usabilidad del sistema con una encuesta tipo SUS (Google Form).",
+       prefix="Objetivo del addendum:"))
+
+B(sub("Resumen de las mejoras del profesor"))
+B(table(
+    ["ID", "Mejora", "Tipo", "Prior.", "Horas", "Responsable"],
+    [
+        ["MP-01", "Seed histórico: 3 años de datos de demostración (facturas, pagos, mantenimiento)",
+         "Chore datos", dot("P2"), "3 h", "Cortez Zamora"],
+        ["MP-02", "Pago en línea (simulado) de facturas por el residente — HU-FACT-09",
+         "Historia", dot("P1"), "4 h", "Gonza / Santiago"],
+        ["MP-03", "Encuesta de usabilidad (escala Likert tipo SUS) vía Google Form",
+         "Validación", dot("P2"), "1 h", "Alvarez (PO)"],
+    ],
+    [0.7, 2.9, 0.85, 0.7, 0.5, 1.05]))
+B(para("<b>Total addendum:</b> 8 horas adicionales sobre las 13 h del núcleo del Sprint (Tienda v1). El desglose se "
+       "ve en la tabla de impacto al final de este bloque."))
+
+# ---- MP-01 --------------------------------------------------------------- #
+B(sub("MP-01 · Seed histórico — 3 años de datos de demostración"))
+B(para("<b>Qué resuelve:</b> hoy el sistema solo tiene unos pocos registros del mes en curso (scripts/seed.js + "
+       "seed-tiempo.js), por lo que el Dashboard de métricas (S7) y el futuro Dashboard ejecutivo del dueño (S14) se "
+       "ven casi vacíos. El profesor pidió datos de varios años para que las tendencias y la demo final sean "
+       "creíbles."))
+B(para("<b>Cómo:</b> un nuevo script idempotente <b>npm run seed:historico</b> (scripts/seed-historico.js) genera "
+       "~36 meses de datos ficticios para los residentes demo (correos @zity-demo.com):"))
+B(bullets([
+    "Facturas mensuales por residente (luz, agua, pensión) con montos en soles (S/) y una distribución realista de "
+    "estados: la mayoría 'pagada' (con fecha_pago y método), algunas 'vencida' y otras 'pendiente'.",
+    "Solicitudes de mantenimiento repartidas a lo largo de los 36 meses, con categorías, estados (resuelta / en "
+    "proceso / pendiente) y técnico asignado, para poblar las métricas y gráficas del S7.",
+    "Pagos coherentes con las facturas pagadas (vía registrar_pago_factura), para alimentar los totales del "
+    "periodo (cobrado / pendiente / vencido) y la tendencia mensual de ingresos.",
+], marker="•"))
+B(sub("Decisiones técnicas — MP-01"))
+B(table(
+    ["Decisión", "Detalle"],
+    [
+        ["Solo entorno demo/staging",
+         "El seed histórico nunca corre contra producción; usa la SUPABASE_SERVICE_ROLE_KEY del entorno demo y solo "
+         "toca usuarios @zity-demo.com."],
+        ["Idempotente y determinista",
+         "Re-ejecutar npm run seed:historico reinicia y regenera el histórico al mismo resultado (sin acumular "
+         "duplicados), siguiendo el patrón ya usado en seed-tiempo.js."],
+        ["Respeta RLS y constraints",
+         "Inserta vía service role respetando los CHECK de monto/estado/método y las claves foráneas; no desactiva "
+         "RLS. Volumen acotado (~36 meses × residentes demo) para no degradar el dashboard."],
+        ["Reusa el dominio existente",
+         "No crea tablas nuevas: usa facturas, solicitudes y audit_log ya existentes (S3–S9); solo añade el "
+         "generador de datos."],
+    ],
+    [1.7, 5.0]))
+
+# ---- MP-02 --------------------------------------------------------------- #
+B(sub("MP-02 · Pago en línea de facturas por el residente (simulado)"))
+B(para("<b>Qué resuelve:</b> hoy el único camino a 'pagada' es que el <b>admin</b> ejecute registrar_pago_factura "
+       "(efectivo / transferencia / otro); el residente no puede pagar desde la app. El profesor sugirió una "
+       "pasarela de pagos o alguna forma de que el residente pague sus facturas."))
+B(para("<b>Enfoque (decisión del equipo):</b> en esta iteración el pago es <b>simulado</b> (mock): un flujo de pago "
+       "ficticio, sin dinero ni proveedor real, que marca la factura como pagada. Queda <b>listo para conectar una "
+       "pasarela real</b> (Culqi, Izipay o MercadoPago Perú, ya que el sistema opera en soles) mediante una Edge "
+       "Function + webhook de confirmación en un Sprint futuro. Así se evita manejar credenciales y datos de tarjeta "
+       "reales en un proyecto académico."))
+B(hucard(
+    "HU-FACT-09", "Residente paga su factura en línea (pago simulado)", "Sprint 10 · addendum · 4 h", "P1 · 4 h",
+    "Como <b>residente</b>, quiero <b>pagar mis facturas pendientes o vencidas desde la app mediante un pago en "
+    "línea</b>, para no depender de que el administrador registre mi pago manualmente.",
+    [
+        "En /residente/facturas, cada factura 'pendiente' o 'vencida' muestra un botón <b>Pagar</b>; las 'pagadas' "
+        "no lo muestran.",
+        "El botón abre un modal de pago <b>simulado</b>: muestra el monto en soles (S/) y un formulario de tarjeta "
+        "ficticia (número / vencimiento / CVV) que NO se procesa contra ningún proveedor; un aviso indica que es un "
+        "pago de demostración.",
+        "Al confirmar, una RPC marca la factura como 'pagada' con metodo_pago='tarjeta', fecha_pago = hoy "
+        "(America/Lima) y registrado_por = el propio residente; es idempotente (si ya está pagada, no reescribe).",
+        "Seguridad: el residente solo puede pagar <b>sus propias</b> facturas (verificación de residente_id en la "
+        "RPC + RLS); nunca las de otro residente.",
+        "Reusa el trigger after_factura_paid (S9): se emite la notificación 'factura_pagada' y la factura se ve "
+        "como pagada al instante (Realtime).",
+        "El admin sigue viendo el pago en su panel y en los totales del periodo (cobrado), igual que un pago "
+        "registrado manualmente.",
+    ],
+    "En la Review, Laura pagó su factura de agua desde /residente/facturas con el pago simulado; la factura pasó a "
+    "'pagada', llegó la notificación y el monto se sumó a 'cobrado' en el panel del admin."))
+B(note("Nota técnica: se amplía el CHECK de facturas.metodo_pago para admitir 'tarjeta' (además de "
+       "efectivo/transferencia/otro) y se añade una RPC pagar_factura_residente (SECURITY DEFINER) que valida "
+       "auth.uid() = residente_id. Migrar a una pasarela real solo requiere reemplazar la confirmación simulada por "
+       "el webhook del proveedor; el resto del flujo (estado, notificación, totales) no cambia."))
+
+# ---- MP-03 --------------------------------------------------------------- #
+B(sub("MP-03 · Encuesta de usabilidad (Google Form, escala Likert tipo SUS)"))
+B(para("<b>Qué resuelve:</b> hasta ahora la validación se apoyó en stakeholders ficticios (Laura, Carlos, Rosa). El "
+       "profesor pidió medir con usuarios reales qué tan intuitivo y útil es el sistema, con un Google Form que "
+       "incluya una breve descripción del sistema, el enlace y preguntas en escala Likert."))
+B(para("<b>Instrumento:</b> se adopta una encuesta tipo <b>SUS (System Usability Scale)</b> — estándar de la "
+       "industria para medir usabilidad percibida — con 10 ítems en escala Likert de 1 (Totalmente en desacuerdo) a "
+       "5 (Totalmente de acuerdo), más dos preguntas abiertas. El SUS produce un puntaje de 0 a 100; un valor ≥ 68 "
+       "se considera por encima del promedio."))
+B(bullets([
+    "<b>Encabezado:</b> breve descripción de Zity (plataforma de gestión del edificio: mantenimiento, facturación, "
+    "comunicación y tienda interna) + enlace al sistema en staging.",
+    "<b>Datos del encuestado:</b> rol con el que probó (residente / administrador / técnico / visitante), sin datos "
+    "personales sensibles (alineado con 'Datos ficticios sin PII real').",
+    "<b>10 ítems Likert (1–5):</b> intuitividad, facilidad de uso, consistencia, confianza, rapidez para completar "
+    "tareas y utilidad percibida de los módulos.",
+    "<b>2 preguntas abiertas:</b> qué te resultó más útil y qué mejorarías.",
+    "<b>Aplicación:</b> se difunde a compañeros y usuarios reales; se recogen las respuestas y el puntaje SUS se "
+    "reporta en el S13/S14 como evidencia de validación.",
+], marker="•"))
+B(note("El contenido completo del formulario (descripción, ítems y escala, listo para copiar a Google Forms) está en "
+       "el Anexo A de este bloque (más abajo) y, además, en el archivo "
+       "docs/sprints/Zity_Encuesta_Usabilidad_GoogleForm.md del repositorio."))
+
+B(sub("Anexo A · Contenido del Google Form de usabilidad"))
+B(para("<b>Título:</b> Encuesta de usabilidad — Zity (gestión de tu edificio)"))
+B(para("<b>Descripción (encabezado del formulario):</b> Zity es una plataforma web para gestionar tu edificio: "
+       "reportar y seguir solicitudes de mantenimiento, recibir y pagar tus facturas (luz, agua, pensión), "
+       "comunicarte con la administración y comprar en la tienda interna. Pruébalo en el enlace y cuéntanos qué tan "
+       "fácil e intuitivo te resultó. Te tomará unos 3 minutos. Tus respuestas son anónimas y con fines académicos."))
+B(para("<b>Enlace al sistema:</b> https://zity.vercel.app  (reemplazar por la URL real de staging)"))
+B(para("<b>Sección 1 — Sobre ti:</b> ¿Con qué rol probaste Zity? (opción única: Residente / Administrador / "
+       "Técnico / Solo exploré)"))
+B(para("<b>Sección 2 — Escala de usabilidad (1 = Totalmente en desacuerdo … 5 = Totalmente de acuerdo):</b>"))
+B(numlist([
+    "Creo que me gustaría usar Zity con frecuencia.",
+    "Encontré el sistema innecesariamente complejo.",
+    "Me pareció fácil de usar.",
+    "Creo que necesitaría ayuda de una persona técnica para poder usar Zity.",
+    "Las funciones del sistema (mantenimiento, facturas, tienda) están bien integradas.",
+    "Encontré demasiada inconsistencia en el sistema.",
+    "Imagino que la mayoría de la gente aprendería a usar Zity muy rápido.",
+    "Me pareció muy engorroso de usar.",
+    "Me sentí seguro/a al usar el sistema.",
+    "Necesité aprender muchas cosas antes de poder manejar Zity.",
+]))
+B(para("<b>Sección 3 — Preguntas abiertas:</b>"))
+B(bullets([
+    "¿Qué fue lo que te resultó más útil o lo que más te gustó?",
+    "¿Qué cambiarías o mejorarías para que el sistema sea más fácil de usar?",
+], marker="•"))
+B(note("Cálculo del puntaje SUS: en los ítems impares (1, 3, 5, 7, 9) reste 1 a la respuesta; en los pares "
+       "(2, 4, 6, 8, 10) reste la respuesta a 5. Sume los 10 valores (rango 0–40) y multiplique por 2.5 para obtener "
+       "un puntaje de 0 a 100. Referencia de la industria: 68 = promedio."))
+
+B(sub("Impacto en la capacidad del Sprint 10"))
+B(table(
+    ["Concepto", "Horas"],
+    [
+        ["Núcleo del Sprint 10 — Tienda interna v1 + CD (sin cambios)", "13 h"],
+        ["MP-01 · Seed histórico de 3 años", "3 h"],
+        ["MP-02 · Pago en línea simulado de facturas (HU-FACT-09)", "4 h"],
+        ["MP-03 · Encuesta de usabilidad (Google Form)", "1 h"],
+        ["Total Sprint 10 con addendum", "21 h"],
+    ],
+    [5.7, 1.0]))
+B(note("El núcleo (13 h) conserva su estimación, su velocidad y la racha 'sin hotfixes'. El addendum (8 h) se "
+       "reconoce como esfuerzo adicional puntual aceptado a pedido del profesor; no se promedia con la velocidad "
+       "histórica para no distorsionarla."))
 
 B(sub("Decisiones técnicas del Sprint"))
 B(para("Antes de empezar el desarrollo, el equipo cierra las siguientes decisiones técnicas:"))
@@ -319,7 +491,9 @@ B(meta([
     ("Incremento presentado",
      "Tienda interna v1: tablas productos/pedidos/pedido_items + RLS, /admin/tienda con CRUD del catálogo y foto a "
      "Storage, /residente/tienda con grilla, filtros y búsqueda, indicador de stock bajo/agotado, y CD a staging "
-     "(deploy automático en merge a main) que cierra DoD v2."),
+     "(deploy automático en merge a main) que cierra DoD v2. Adicionalmente, el addendum recomendado por el "
+     "profesor e incorporado en el Planning (§1): seed de 3 años de datos, pago en línea simulado de facturas "
+     "(HU-FACT-09) y encuesta de usabilidad (Google Form)."),
     ("Modalidad de demo",
      "Dos navegadores (admin + residente). Un merge de prueba a main en vivo para mostrar el deploy automático a "
      "staging y el GET /health en verde."),
@@ -342,6 +516,10 @@ B(numlist([
     "~1-2 min.",
     "Se muestra el run de deploy-staging.yml en verde (build → deploy → verificación /health). Con esto, la "
     "verificación post-deploy automática de DoD v2 queda cerrada.",
+    "Addendum (mejoras del profesor): Laura paga su factura de agua desde /residente/facturas con el pago en línea "
+    "simulado y pasa a 'pagada' (llega la notificación). Se muestra el dashboard con 3 años de datos de "
+    "demostración ya cargados (npm run seed:historico) y el Google Form de usabilidad (SUS) abierto para recoger "
+    "respuestas. Detalle en el Sprint Planning (§1).",
 ]))
 B(goal(
     chk() + " CUMPLIDO: Tienda interna v1 operativa — /admin/tienda con CRUD del catálogo (alta/baja/stock/precio + "
@@ -371,6 +549,15 @@ B(bullets([
     "«Saber que cada pedido de la tienda se sumará a la factura del mes (S11) y que todo irá al dashboard ejecutivo "
     "(S14) me deja ver el cierre del producto.» → Validación + semilla del S14.",
 ], marker="•"))
+B(para("<b>Profesor del curso</b>"))
+B(bullets([
+    "«Cargar 3 años de datos de demostración fue un acierto: las métricas y el futuro dashboard ejecutivo ya se ven "
+    "realistas.» → Validación de MP-01 (planificada en §1).",
+    "«Que el residente pueda pagar su factura en línea, aunque el pago sea simulado, acerca el sistema a un caso "
+    "real y es un buen punto de partida para una pasarela como Culqi o Izipay.» → Validación de MP-02 / HU-FACT-09.",
+    "«La encuesta de usabilidad (Google Form, escala Likert tipo SUS) les dará evidencia objetiva de qué tan "
+    "intuitivo es el sistema.» → Validación de MP-03.",
+], marker="•"))
 
 B(sub("Decisiones de adaptación del Product Backlog"))
 B(table(
@@ -385,6 +572,11 @@ B(table(
         ["PBI-S10-E02 (NUEVA)", "Edición de stock en lote en /admin/tienda (feedback Carlos). P3, 2 h. Sin asignar."],
         ["CD operativo", "El deploy automático a staging queda activo. Los smoke tests post-deploy más completos "
                          "entran como chore del S14."],
+        ["Mejoras del profesor entregadas",
+         "Las 3 mejoras recomendadas por el profesor e incorporadas en el Planning (§1) — MP-01 seed de 3 años, "
+         "MP-02 pago en línea simulado de facturas (HU-FACT-09) y MP-03 encuesta de usabilidad (Likert/SUS) — se "
+         "entregaron dentro del Sprint 10 como addendum (≈8 h), sin alterar el compromiso base de 13 h de la "
+         "Tienda v1."],
         ["Sprint 11 confirmado", "Tienda v2 (DoD v3): carrito del residente + descuento atómico de stock al confirmar "
                                  "+ el pedido se suma como línea a la factura mensual + vista admin de pedidos. Chore: "
                                  "privacidad / no-PII en logs de tienda y factura."],
@@ -415,6 +607,8 @@ B(bullets([
     "El CD quedó con CI como gate y verificación /health post-deploy — la deuda de 'deploy automático' que "
     "arrastrábamos desde el S8 quedó saldada.",
     "Tener a Laura en el Planning (segunda vez) capturó el badge 'Agotado' a tiempo, dentro del buffer.",
+    "Se incorporaron las tres mejoras recomendadas por el profesor (seed de 3 años, pago simulado de facturas y "
+    "encuesta de usabilidad) como addendum, sin afectar el compromiso ni la velocidad del núcleo del Sprint.",
     "Sexto Sprint consecutivo sin hotfixes.",
 ], marker="•"))
 B(sub(xmk() + " ¿Qué salió mal?"))
@@ -605,15 +799,17 @@ B(table(
          "notificación Realtime", done],
         ["Sprint 9", "12.5 h", "Facturación v2: marcar pagada + recordatorios + vencida + comprobante PDF + totales + "
          "/health", done],
-        ["Sprint 10", "13 h", star() + " Tienda interna v1: catálogo admin (CRUD + foto) + grilla residente con "
-         "filtros/búsqueda + CD a staging", done],
+        ["Sprint 10", "13 + 8 h", star() + " Tienda interna v1: catálogo admin (CRUD + foto) + grilla residente con "
+         "filtros/búsqueda + CD a staging · Addendum del profesor: seed 3 años + pago simulado de facturas + "
+         "encuesta de usabilidad", done],
         ["Sprint 11", "13 h (est.)", "Tienda interna v2: carrito + descuento atómico + pedido → factura mensual + "
          "vista admin de pedidos (primer DoD v3)", "<font color='#C8862A'>→ Próximo</font>"],
         ["Sprints 12–14", "39 h (est.)", "Notificaciones avanzadas · Panel integral residente · " + star() +
          " Dashboard ejecutivo + RC", "<font color='#C8862A'>■ Planificado</font>"],
     ],
     [0.95, 0.85, 3.7, 1.2]))
-B(para("<b>Total invertido:</b> 144.5 horas en 11 sprints (Sprint 0 → Sprint 10)."))
+B(para("<b>Total invertido:</b> 144.5 horas en 11 sprints (Sprint 0 → Sprint 10), más 8 h del addendum de mejoras "
+       "del profesor incorporado al Sprint 10 (152.5 h en total)."))
 B(para("<b>Total restante:</b> ~52 horas estimadas en 4 sprints."))
 B(para("<b>Velocidad promedio:</b> 13.1 horas/sprint (estable por octavo sprint consecutivo)."))
 
