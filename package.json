@@ -15,6 +15,7 @@
     "seed": "node --env-file=.env scripts/seed.js",
     "seed:clean": "node --env-file=.env scripts/seed.js --clean",
     "seed:tiempo": "node --env-file=.env scripts/seed-tiempo.js",
+    "seed:poblacion": "node --env-file=.env scripts/seed-poblacion.js",
     "seed:historico": "node --env-file=.env scripts/seed-historico.js"
   },
   "dependencies": {

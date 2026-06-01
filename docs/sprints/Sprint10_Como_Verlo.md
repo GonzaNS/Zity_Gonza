@@ -38,13 +38,17 @@ del producto, la Tienda**, y suma tres mejoras pedidas por el profesor:
 
 ```bash
 npm install
-npm run seed          # usuarios + facturas demo (si aún no lo corriste)
-npm run seed:historico # 3 años de facturas y solicitudes demo (MP-01)
-npm run dev           # http://localhost:5173
+npm run seed           # usuarios base + facturas demo (si aún no lo corriste)
+npm run seed:poblacion # elenco del edificio: ~16 residentes + 3 técnicos demo
+npm run seed:historico # 3 años de facturas y solicitudes, repartidas por antigüedad
+npm run dev            # http://localhost:5173
 ```
 
 Credenciales demo: **Admin** `carlos@zity-demo.com` / `Admin1234!` ·
-**Residente** `laura@zity-demo.com` / `Residente1!`
+**Residente** `laura@zity-demo.com` / `Residente1!`. El resto del elenco del
+edificio (Rosa, Jorge, Miguel, Lucía…) usa el password común **`Demo1234!`** —
+así puedes iniciar sesión como cualquier vecino. Dos vecinos (Carmen, Roberto)
+están **bloqueados** porque "se mudaron".
 
 > [!IMPORTANT]
 > Las migraciones del Sprint 10 deben estar aplicadas en Supabase (ya lo están en el

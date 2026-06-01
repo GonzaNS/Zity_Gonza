@@ -72,16 +72,29 @@ function chunks(arr, size) {
   for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size))
   return out
 }
+/** Meses transcurridos desde una fecha ISO hasta hoy (por año*12 + mes). */
+function mesesDesde(iso) {
+  const alta = new Date(iso)
+  const hoy = new Date()
+  return (hoy.getFullYear() - alta.getFullYear()) * 12 + (hoy.getMonth() - alta.getMonth())
+}
 
 // ── Carga de residentes demo ──────────────────────────────────────────────────
 async function cargarContexto() {
   const { data: usuarios, error } = await supabase
     .from('usuarios')
-    .select('id, nombre, rol, piso, departamento, email')
+    .select('id, nombre, rol, piso, departamento, email, created_at')
     .like('email', '%zity-demo.com')
 
   if (error) { console.error('Error cargando usuarios demo:', error.message); process.exit(1) }
-  const residentes = (usuarios ?? []).filter(u => u.rol === 'residente')
+  // Cada residente recibe historial solo desde su "fecha de alta" (created_at),
+  // acotado al rango [DESDE_OFFSET, MESES+DESDE_OFFSET-1].
+  const residentes = (usuarios ?? [])
+    .filter(u => u.rol === 'residente')
+    .map(u => ({
+      ...u,
+      mesesAntiguedad: Math.min(MESES + DESDE_OFFSET - 1, Math.max(DESDE_OFFSET, mesesDesde(u.created_at))),
+    }))
   const admin = (usuarios ?? []).find(u => u.rol === 'admin')
   if (residentes.length === 0) {
     console.warn('No hay residentes demo. Corre primero `npm run seed`.')
@@ -111,7 +124,10 @@ async function seedFacturas(residentes, adminId) {
 
   const filas = []
   for (const r of residentes) {
-    for (const periodo of periodos) {
+    for (let k = 0; k < MESES; k++) {
+      const offset = DESDE_OFFSET + k
+      if (offset > r.mesesAntiguedad) continue // el residente aún no vivía aquí
+      const periodo = periodoOffset(offset)
       for (const tpl of PLANTILLAS_FACTURA) {
         if (existentes.has(`${r.id}|${tpl.tipo}|${periodo}`)) continue
         const rnd = rngFor(r.id, periodo, tpl.tipo)
@@ -162,12 +178,15 @@ async function seedSolicitudes(residentes) {
 
   const filas = []
   for (let k = 0; k < MESES; k++) {
-    const periodo = periodoOffset(DESDE_OFFSET + k)
+    const offset = DESDE_OFFSET + k
+    const periodo = periodoOffset(offset)
+    const elegibles = residentes.filter(r => r.mesesAntiguedad >= offset)
+    if (elegibles.length === 0) continue // nadie vivía aún en el edificio ese mes
     const rndMes = rngFor('sol-mes', periodo)
     const n = 2 + Math.floor(rndMes() * 3)   // 2-4 solicitudes por mes
     for (let i = 0; i < n; i++) {
       const rnd = rngFor('sol', periodo, String(i))
-      const r = pick(rnd, residentes)
+      const r = pick(rnd, elegibles)
       const [tipo, categoria] = pick(rnd, TIPOS_SOLICITUD)
       const descripcion =
         `Solicitud de ${categoria} (datos de demostración para el historial). ${MARCADOR} ${periodo}#${i}`
