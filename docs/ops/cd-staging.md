@@ -23,6 +23,9 @@ push/merge a main
 - El deploy **solo** corre si el CI terminó en verde (gate). Si lint o los tests
   fallan, no se publica nada.
 - Se dispara solo en `main` (los PRs corren el CI en su rama, no este workflow).
+- Si los secrets de Vercel aún **no** están configurados, el deploy se **omite
+  limpiamente**: el job queda en verde con los pasos marcados como *skipped* y un
+  aviso (`::notice::`), no en rojo. Empieza a desplegar solo en cuanto los cargues.
 
 ## Configuración (una vez)
 

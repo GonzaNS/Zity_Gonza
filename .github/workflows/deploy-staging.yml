@@ -9,7 +9,10 @@ name: Deploy to Staging
 # en la rama del PR (head_branch != main) y este workflow NO se dispara; solo
 # despliega en los push/merge a `main`.
 #
-# Cierra el último criterio de DoD v2: verificación post-deploy automática.
+# Si los secrets de Vercel aún no están configurados, el deploy se OMITE
+# limpiamente (job en verde con los pasos marcados como "skipped"), en vez de
+# fallar en rojo. En cuanto cargues VERCEL_TOKEN/ORG_ID/PROJECT_ID empieza a
+# desplegar solo. Cierra el último criterio de DoD v2.
 
 on:
   workflow_run:
@@ -29,37 +32,59 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
     steps:
-      - uses: actions/checkout@v4
+      # Si faltan los secrets, marcamos el deploy como "no configurado" y los
+      # pasos siguientes se saltan (job verde, sin error). Notice informativo.
+      - name: Comprobar secrets de Vercel
+        id: check
+        run: |
+          if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_ORG_ID" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
+            echo "::notice::Secrets de Vercel no configurados (VERCEL_TOKEN/ORG_ID/PROJECT_ID). Se omite el deploy a staging. Para activarlo, cárgalos en Settings → Secrets and variables → Actions. Guía: docs/ops/cd-staging.md"
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
 
-      - uses: actions/setup-node@v4
+      - name: Checkout
+        if: steps.check.outputs.configured == 'true'
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        if: steps.check.outputs.configured == 'true'
+        uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
 
       - name: Instalar Vercel CLI
+        if: steps.check.outputs.configured == 'true'
         run: npm install -g vercel@latest
 
       # `vercel pull` trae la configuración y las env vars del proyecto (incluidas
       # VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY que el build de Vite necesita).
       - name: Descargar configuración del proyecto (Vercel)
-        run: vercel pull --yes --environment=production --token="${{ secrets.VERCEL_TOKEN }}"
+        if: steps.check.outputs.configured == 'true'
+        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
 
       - name: Build de producción
-        run: vercel build --prod --token="${{ secrets.VERCEL_TOKEN }}"
+        if: steps.check.outputs.configured == 'true'
+        run: vercel build --prod --token="$VERCEL_TOKEN"
 
       - name: Deploy a Vercel (staging)
         id: deploy
+        if: steps.check.outputs.configured == 'true'
         run: |
-          url="$(vercel deploy --prebuilt --prod --token="${{ secrets.VERCEL_TOKEN }}")"
+          url="$(vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN")"
           echo "Deploy URL: $url"
           echo "url=$url" >> "$GITHUB_OUTPUT"
 
       # Verificación post-deploy: el endpoint /health (Sprint 9) debe responder
       # 200. Reintenta porque el dominio puede tardar unos segundos en propagar.
       - name: Verificación post-deploy (GET /health)
+        if: steps.check.outputs.configured == 'true'
         run: |
           url="${{ steps.deploy.outputs.url }}"
           echo "Verificando ${url}/health"
