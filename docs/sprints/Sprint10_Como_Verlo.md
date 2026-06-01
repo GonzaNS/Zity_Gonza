@@ -39,7 +39,7 @@ del producto, la Tienda**, y suma tres mejoras pedidas por el profesor:
 ```bash
 npm install
 npm run seed           # usuarios base + facturas demo (si aún no lo corriste)
-npm run seed:poblacion # elenco del edificio: ~16 residentes + 3 técnicos demo
+npm run seed:poblacion # elenco del edificio: ~16 residentes + 6 técnicos demo
 npm run seed:historico # 3 años de facturas y solicitudes, repartidas por antigüedad
 npm run dev            # http://localhost:5173
 ```
@@ -109,7 +109,8 @@ npm run seed:historico
 ```
 
 Genera ~36 meses de **facturas** (luz/agua/pensión, mayoría pagadas) y **solicitudes** de
-mantenimiento para los residentes demo. Luego, como **admin**:
+mantenimiento repartidas entre los vecinos (cada una asignada a un técnico del equipo).
+Luego, como **admin**:
 
 - En **"Métricas"** (`/admin/metricas`) verás las gráficas **pobladas con 3 años** de
   historia en lugar de unos pocos registros del mes.

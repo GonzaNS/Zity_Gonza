@@ -70,9 +70,13 @@ const RESIDENTES = [
   { nombre: 'Gabriela', apellido: 'Núñez',   piso: '4', departamento: 'C', meses: 4,  telefono: '+51 999 100 013' },
 ]
 
-// Técnico nuevo (Mario y Ana ya existen en el seed base → con este, 3 demo).
+// Equipo de mantenimiento (Mario y Ana ya existen en el seed base → con estos,
+// 6 técnicos demo: unos internos, otros de empresas terceras).
 const TECNICOS = [
-  { nombre: 'Luis', apellido: 'Quispe', meses: 30, telefono: '+51 999 200 001', empresa: 'ServiTec EIRL' },
+  { nombre: 'Luis',   apellido: 'Quispe',  meses: 30, telefono: '+51 999 200 001', empresa: 'ServiTec EIRL' },
+  { nombre: 'Víctor', apellido: 'Salas',   meses: 33, telefono: '+51 999 200 002' },
+  { nombre: 'Raúl',   apellido: 'Ramírez', meses: 24, telefono: '+51 999 200 003', empresa: 'ElectroFix SAC' },
+  { nombre: 'Carla',  apellido: 'Mejía',   meses: 12, telefono: '+51 999 200 004' },
 ]
 
 // Los 3 residentes del seed base se tratan como vecinos "fundadores" (antiguos):

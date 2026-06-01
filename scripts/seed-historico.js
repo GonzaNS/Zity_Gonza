@@ -83,7 +83,7 @@ function mesesDesde(iso) {
 async function cargarContexto() {
   const { data: usuarios, error } = await supabase
     .from('usuarios')
-    .select('id, nombre, rol, piso, departamento, email, created_at')
+    .select('id, nombre, rol, piso, departamento, email, created_at, empresa_tercero')
     .like('email', '%zity-demo.com')
 
   if (error) { console.error('Error cargando usuarios demo:', error.message); process.exit(1) }
@@ -95,12 +95,13 @@ async function cargarContexto() {
       ...u,
       mesesAntiguedad: Math.min(MESES + DESDE_OFFSET - 1, Math.max(DESDE_OFFSET, mesesDesde(u.created_at))),
     }))
+  const tecnicos = (usuarios ?? []).filter(u => u.rol === 'tecnico')
   const admin = (usuarios ?? []).find(u => u.rol === 'admin')
   if (residentes.length === 0) {
     console.warn('No hay residentes demo. Corre primero `npm run seed`.')
     process.exit(0)
   }
-  return { residentes, adminId: admin?.id ?? null }
+  return { residentes, tecnicos, adminId: admin?.id ?? null }
 }
 
 // ── Facturas históricas ───────────────────────────────────────────────────────
@@ -170,12 +171,13 @@ const TIPOS_SOLICITUD = [
   ['reparacion', 'electricidad'], ['reparacion', 'plomeria'], ['queja', 'limpieza'],
 ]
 
-async function seedSolicitudes(residentes) {
-  // Precarga de descripciones con marcador → idempotencia.
-  const { data: previas } = await supabase
-    .from('solicitudes').select('descripcion').like('descripcion', `%${MARCADOR}%`)
-  const yaExisten = new Set((previas ?? []).map(s => s.descripcion))
+async function seedSolicitudes(residentes, tecnicos, adminId) {
+  // Reset: borra las solicitudes históricas previas (el marcador). El ON DELETE
+  // CASCADE limpia su historial_estados y asignaciones. Así se pueden repartir de
+  // nuevo entre TODO el elenco de forma determinista (mismo resultado al reejecutar).
+  await supabase.from('solicitudes').delete().like('descripcion', `%${MARCADOR}%`)
 
+  // Genera las solicitudes repartidas entre los residentes ya dados de alta.
   const filas = []
   for (let k = 0; k < MESES; k++) {
     const offset = DESDE_OFFSET + k
@@ -188,10 +190,6 @@ async function seedSolicitudes(residentes) {
       const rnd = rngFor('sol', periodo, String(i))
       const r = pick(rnd, elegibles)
       const [tipo, categoria] = pick(rnd, TIPOS_SOLICITUD)
-      const descripcion =
-        `Solicitud de ${categoria} (datos de demostración para el historial). ${MARCADOR} ${periodo}#${i}`
-      if (yaExisten.has(descripcion)) continue
-
       const x = rnd()
       const estado = x < 0.62 ? 'resuelta' : x < 0.78 ? 'cerrada' : x < 0.88 ? 'en_progreso' : x < 0.96 ? 'asignada' : 'pendiente'
       const dia = 1 + Math.floor(rnd() * 26)
@@ -204,7 +202,8 @@ async function seedSolicitudes(residentes) {
         updatedAt = new Date(new Date(createdAt).getTime() + horas * 3600 * 1000).toISOString()
       }
       filas.push({
-        residente_id: r.id, tipo, categoria, descripcion,
+        residente_id: r.id, tipo, categoria,
+        descripcion: `Solicitud de ${categoria} (datos de demostración para el historial). ${MARCADOR} ${periodo}#${i}`,
         prioridad: rnd() < 0.3 ? 'urgente' : 'normal',
         piso: r.piso, departamento: r.departamento,
         estado, created_at: createdAt, updated_at: updatedAt,
@@ -212,14 +211,43 @@ async function seedSolicitudes(residentes) {
     }
   }
 
-  const solicitudIds = []
+  // Inserta y recupera id + estado + created_at para asignar técnico.
+  const insertadas = []
   for (const lote of chunks(filas, 100)) {
-    const { data, error } = await supabase.from('solicitudes').insert(lote).select('id')
+    const { data, error } = await supabase.from('solicitudes').insert(lote).select('id, estado, created_at')
     if (error) { console.error('  Error insertando lote de solicitudes:', error.message); continue }
-    for (const s of data ?? []) solicitudIds.push(s.id)
+    insertadas.push(...(data ?? []))
   }
-  console.log(`  ✓ Solicitudes: ${solicitudIds.length} creadas, ${yaExisten.size} ya existían`)
-  return solicitudIds
+
+  // Asigna un técnico a las solicitudes que dejaron de estar 'pendiente'
+  // (asignada/en_progreso/resuelta/cerrada): el trabajo se reparte entre el
+  // equipo de mantenimiento a lo largo de los 3 años. fecha_asignacion = poco
+  // después de crearse; asignado_por = el admin.
+  let asignadas = 0
+  if (tecnicos.length && adminId) {
+    const asignaciones = []
+    for (const s of insertadas) {
+      if (s.estado === 'pendiente') continue
+      const rnd = rngFor('asig', s.id)
+      const tec = pick(rnd, tecnicos)
+      const fecha = new Date(new Date(s.created_at).getTime() + (2 + Math.floor(rnd() * 30)) * 3600 * 1000).toISOString()
+      asignaciones.push({
+        solicitud_id: s.id,
+        tecnico_id: tec.id,
+        asignado_por: adminId,
+        fecha_asignacion: fecha,
+        empresa_tercero: tec.empresa_tercero ?? null,
+      })
+    }
+    for (const lote of chunks(asignaciones, 100)) {
+      const { data, error } = await supabase.from('asignaciones').insert(lote).select('id')
+      if (error) { console.error('  Error insertando asignaciones:', error.message); continue }
+      asignadas += (data ?? []).length
+    }
+  }
+
+  console.log(`  ✓ Solicitudes: ${insertadas.length} creadas y repartidas · ${asignadas} asignadas a técnicos`)
+  return insertadas.map(s => s.id)
 }
 
 // ── Limpieza del ruido de notificaciones generado por los triggers ────────────
@@ -243,14 +271,15 @@ async function limpiarNotificaciones(facturaIds, solicitudIds) {
 
 async function main() {
   console.log(`Seed histórico — ${MESES} meses (desde hace ${DESDE_OFFSET} meses), zona America/Lima\n`)
-  const { residentes, adminId } = await cargarContexto()
-  console.log(`Residentes demo: ${residentes.map(r => r.nombre).join(', ')}\n`)
+  const { residentes, tecnicos, adminId } = await cargarContexto()
+  console.log(`Residentes demo: ${residentes.map(r => r.nombre).join(', ')}`)
+  console.log(`Técnicos demo: ${tecnicos.map(t => t.nombre).join(', ')}\n`)
 
   console.log('Generando facturas históricas…')
   const facturaIds = await seedFacturas(residentes, adminId)
 
   console.log('Generando solicitudes históricas…')
-  const solicitudIds = await seedSolicitudes(residentes)
+  const solicitudIds = await seedSolicitudes(residentes, tecnicos, adminId)
 
   console.log('Limpiando notificaciones de relleno…')
   await limpiarNotificaciones(facturaIds, solicitudIds)
