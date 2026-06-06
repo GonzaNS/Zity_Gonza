@@ -67,4 +67,28 @@ describe('Job diario vencidas + recordatorios (HU-FACT-06/08)', () => {
     expect(data).toHaveLength(1)
     expect(data?.[0]).toMatchObject({ tipo: 'factura_por_vencer', metadata: { factura_id: 'f1' } })
   })
+
+  // ── Sprint 12 · Buffer PBI-S9-E02 — recordatorio el día del vencimiento ──────
+  it('PBI-S9-E02: el job reporta los recordatorios emitidos el día del vencimiento', async () => {
+    mockRpc.mockResolvedValue({
+      data: { vencidas: 0, recordatorios: 0, recordatorios_hoy: 2, fecha: '2026-06-13' },
+      error: null,
+    })
+
+    const { data } = await supabase.rpc('marcar_facturas_vencidas_y_recordatorios')
+
+    expect(data.recordatorios_hoy).toBe(2)
+  })
+
+  it('idempotencia (R1): el recordatorio del día del vencimiento no se duplica', async () => {
+    mockRpc
+      .mockResolvedValueOnce({ data: { vencidas: 0, recordatorios: 0, recordatorios_hoy: 1, fecha: '2026-06-13' }, error: null })
+      .mockResolvedValueOnce({ data: { vencidas: 0, recordatorios: 0, recordatorios_hoy: 0, fecha: '2026-06-13' }, error: null })
+
+    const primera = await supabase.rpc('marcar_facturas_vencidas_y_recordatorios')
+    const segunda = await supabase.rpc('marcar_facturas_vencidas_y_recordatorios')
+
+    expect(primera.data.recordatorios_hoy).toBe(1)
+    expect(segunda.data.recordatorios_hoy).toBe(0)
+  })
 })
