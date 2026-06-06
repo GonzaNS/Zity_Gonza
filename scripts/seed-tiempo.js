@@ -53,9 +53,11 @@ async function main() {
   const fechaEmision = fechaLima(-10)
   const fechaRecordatorio = fechaLima(3)   // vence en 3 días → recordatorio
   const fechaVencida = fechaLima(-2)       // venció hace 2 días → 'vencida'
+  const fechaVenceHoy = fechaLima(0)       // vence hoy → recordatorio del día (S12 · PBI-S9-E02)
 
   // 2. Por cada residente, reposicionar sus facturas NO pagadas del mes:
-  //    la 1ª a "vence en 3 días", la 2ª a "ya vencida". Reset para reproducibilidad.
+  //    la 1ª a "vence en 3 días", la 2ª a "ya vencida", la 3ª a "vence hoy".
+  //    Reset para reproducibilidad.
   for (const r of residentes) {
     const { data: facturas, error } = await supabase
       .from('facturas')
@@ -71,6 +73,7 @@ async function main() {
     const plan = [
       { factura: facturas[0], vencimiento: fechaRecordatorio, etiqueta: 'vence en 3 días' },
       facturas[1] ? { factura: facturas[1], vencimiento: fechaVencida, etiqueta: 'ya vencida' } : null,
+      facturas[2] ? { factura: facturas[2], vencimiento: fechaVenceHoy, etiqueta: 'vence hoy' } : null,
     ].filter(Boolean)
 
     for (const p of plan) {
@@ -79,6 +82,7 @@ async function main() {
         .update({
           estado: 'pendiente',
           recordatorio_enviado: false,
+          recordatorio_vencimiento_enviado: false,
           fecha_emision: fechaEmision,
           vencimiento: p.vencimiento,
         })

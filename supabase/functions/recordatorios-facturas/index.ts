@@ -15,18 +15,23 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { factura_id, residente_id, tipo, monto, periodo, vencimiento } = await req.json() as {
-      factura_id:   string
-      residente_id: string
-      tipo:         string
-      monto:        number
-      periodo:      string
-      vencimiento:  string
+    const { factura_id, residente_id, tipo, monto, periodo, vencimiento, dias_restantes } = await req.json() as {
+      factura_id:     string
+      residente_id:   string
+      tipo:           string
+      monto:          number
+      periodo:        string
+      vencimiento:    string
+      dias_restantes?: number  // Sprint 12 · PBI-S9-E02 — 0 = vence hoy; 3 = 3 días antes (default)
     }
 
     if (!factura_id || !residente_id || !tipo || monto === undefined || !vencimiento) {
       return jsonResponse(req, { error: "Parámetros inválidos" }, 400)
     }
+
+    // "vence hoy" (día del vencimiento) | "vence mañana" | "vence en N días".
+    const dias = typeof dias_restantes === "number" ? dias_restantes : 3
+    const venceTexto = dias <= 0 ? "vence hoy" : dias === 1 ? "vence mañana" : `vence en ${dias} días`
 
     const supabaseAdmin = createServiceClient()
 
@@ -64,9 +69,9 @@ Deno.serve(async (req: Request) => {
 
     const emailHtml = `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e5e7eb; border-radius: 12px;">
-        <h2 style="color: #0f172a; margin-top: 0; font-size: 20px;">Tu factura vence en 3 días</h2>
+        <h2 style="color: #0f172a; margin-top: 0; font-size: 20px;">Tu factura ${venceTexto}</h2>
         <p>Hola <strong>${residente.nombre} ${residente.apellido}</strong>,</p>
-        <p>Te recordamos que tienes una factura próxima a vencer correspondiente al período <strong>${periodoLabel}</strong>:</p>
+        <p>Te recordamos que tienes una factura por pagar correspondiente al período <strong>${periodoLabel}</strong>:</p>
 
         <div style="background: #fffbeb; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #d97706;">
           <table style="width: 100%; border-collapse: collapse;">
@@ -102,7 +107,7 @@ Deno.serve(async (req: Request) => {
       // no-PII (DoD v3): se registran solo IDs, nunca el correo del residente.
       console.log("----- DRY-RUN EMAIL [recordatorios-facturas] -----")
       console.log(`Residente: ${residente_id}`)
-      console.log(`Subject: [Zity] Tu factura de ${tipoLabel} vence en 3 días`)
+      console.log(`Subject: [Zity] Tu factura de ${tipoLabel} ${venceTexto}`)
       console.log(`Factura ID: ${factura_id} · Vence: ${vencLabel}`)
       console.log("--------------------------------------------------")
       return jsonResponse(req, { success: true, mode: "dry-run" })
@@ -117,7 +122,7 @@ Deno.serve(async (req: Request) => {
       body: JSON.stringify({
         from:    resendFrom,
         to:      [residente.email],
-        subject: `[Zity] Tu factura de ${tipoLabel} vence en 3 días`,
+        subject: `[Zity] Tu factura de ${tipoLabel} ${venceTexto}`,
         html:    emailHtml,
       }),
     })
