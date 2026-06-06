@@ -42,6 +42,7 @@ CREATE OR REPLACE FUNCTION public.sanitizar_texto_publicado(p_texto text)
 RETURNS text
 LANGUAGE sql
 IMMUTABLE
+SET search_path = ''
 AS $$
   SELECT CASE WHEN p_texto IS NULL THEN NULL ELSE
     btrim(
