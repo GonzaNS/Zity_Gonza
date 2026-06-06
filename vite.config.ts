@@ -30,7 +30,7 @@ export default defineConfig({
     // con `npm run test:e2e` (Playwright runner, distinto runtime que Vitest).
     // Sin este exclude, Vitest intentaria importar los .spec.ts de Playwright y
     // crashea con "test.describe() was not expected to be called here".
-    exclude: ['**/node_modules/**', '**/dist/**'],
+    exclude: ['**/node_modules/**', '**/dist/**', 'e2e/**'],
     // En CI no existe .env, así que sin estos defaults el módulo
     // src/lib/supabase.ts llama a createClient(undefined, …) y todos los
     // tests que importen (directa o transitivamente) ese módulo fallan al
@@ -94,6 +94,13 @@ export default defineConfig({
         },
         // Sprint 10 — Core del módulo Tienda (DoD v2: ≥ 60 %).
         'src/lib/tienda.ts': {
+          lines: 60,
+          statements: 60,
+          functions: 60,
+          branches: 60,
+        },
+        // Sprint 11 — Helpers del carrito y los pedidos (DoD v2: ≥ 60 %).
+        'src/lib/pedidos.ts': {
           lines: 60,
           statements: 60,
           functions: 60,

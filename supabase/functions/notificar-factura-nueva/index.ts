@@ -45,6 +45,7 @@ Deno.serve(async (req: Request) => {
       agua:    "Agua",
       pension: "Pensión",
       multa:   "Multa",
+      tienda:  "Tienda",
     }
     const tipoLabel = TIPO_LABEL[tipo] ?? tipo
 
@@ -100,9 +101,9 @@ Deno.serve(async (req: Request) => {
     const resendFrom   = Deno.env.get("RESEND_FROM_ADDRESS") ?? "Zity <no-reply@zity.site>"
 
     if (!resendApiKey) {
+      // no-PII (DoD v3): se registran solo IDs, nunca el correo del residente.
       console.log("----- DRY-RUN EMAIL [notificar-factura-nueva] -----")
-      console.log(`From: ${resendFrom}`)
-      console.log(`To: ${residente.email}`)
+      console.log(`Residente: ${residente_id}`)
       console.log(`Subject: [Zity] Nueva factura: ${tipoLabel} — ${montoLabel}`)
       console.log(`Factura ID: ${factura_id}`)
       console.log("---------------------------------------------------")
@@ -125,12 +126,12 @@ Deno.serve(async (req: Request) => {
 
     if (!res.ok) {
       const errorText = await res.text()
-      console.error(`[notificar-factura-nueva] Resend error para ${residente.email}: ${errorText}`)
+      console.error(`[notificar-factura-nueva] Resend error (residente ${residente_id}, factura ${factura_id}): ${errorText}`)
       throw new Error(`Fallo Resend: ${errorText}`)
     }
 
     const resData = await res.json() as { id: string }
-    console.log(`[notificar-factura-nueva] Email enviado a ${residente.email} (id: ${resData.id})`)
+    console.log(`[notificar-factura-nueva] Email enviado (residente ${residente_id}, factura ${factura_id}, id: ${resData.id})`)
     return jsonResponse(req, { success: true, messageId: resData.id })
 
   } catch (error) {

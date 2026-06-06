@@ -45,13 +45,15 @@ export type ProductoInsert = {
   activo?:     boolean   // default true en BD
 }
 
-/** Pedido (modelado para el S11; sin flujo de carrito en v1). */
+/** Pedido de la tienda. El flujo de carrito/confirmación/facturación es el S11. */
 export type Pedido = {
   id:           string
   residente_id: string
   estado:       PedidoEstado
   total:        number
   periodo:      string | null
+  /** Factura de tipo 'tienda' que consolidó el pedido al cierre de mes (S11). */
+  factura_id:   string | null
   created_at:   string
   updated_at:   string
 }

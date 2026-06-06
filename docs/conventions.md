@@ -85,3 +85,29 @@ módulos `lib/*` de cada dominio; los componentes importan de ahí, sin números
 | Peso máx. de foto de producto | `2 MB` | `PRODUCTO_IMAGEN_MAX_BYTES` | Más estricto que solicitudes (5 MB) por el volumen del catálogo. |
 | Paginación del catálogo (lazy) | `24` | `CATALOGO_PAGE_SIZE` | Grilla del residente, carga de 24 en 24. |
 | Tipos de imagen permitidos | `JPEG`, `PNG` | `*_IMAGEN_MIME_PERMITIDOS` | Consistente entre solicitudes y productos. |
+
+## 10. Ciclos de vida de estado (Retro S11 · Acción 3)
+
+Las máquinas de estado del dominio se documentan aquí para alinear UI y backend (qué
+transiciones existen y quién las dispara). El enum vive en BD; el front solo refleja.
+
+| Entidad | Estados | Transiciones | Quién / cómo |
+|---|---|---|---|
+| **Pedido** (`pedido_estado`) | `borrador` → `confirmado` → `facturado` | borrador→confirmado: `confirmar_pedido` (descuento atómico de stock). confirmado→facturado: `facturar_pedidos_periodo` (cierre de mes). | Residente confirma; cron/admin factura. No hay vuelta atrás (cancelar pedido confirmado es PBI-S11-E02, futuro). |
+| **Factura** (`factura_estado`) | `pendiente` → `pagada` · `pendiente` → `vencida` | pendiente→pagada: `registrar_pago_factura` (admin) o `pagar_factura_residente`. pendiente→vencida: job diario si `vencimiento < hoy_lima`. | Idempotente en ambas (no reescribe si ya está en el estado destino). |
+
+- **Una sola fuente de la transición:** cada cambio de estado pasa por su RPC/job
+  `SECURITY DEFINER`; la UI nunca hace `UPDATE estado` directo.
+- El `borrador` del pedido es el carrito: uno activo por residente, se borra al vaciarse.
+  Ver [ADR-014](adr/014-carrito-descuento-atomico.md) y [ADR-015](adr/015-integracion-pedido-factura.md).
+
+## 11. Tests de concurrencia para RPC de stock o saldo (Retro S11 · Acción 1)
+
+- **Toda RPC que descuente stock o modifique un saldo lleva un test de concurrencia explícito**
+  (dos operaciones simultáneas sobre el mismo recurso; solo una debe ganar). Es parte del
+  checklist de revisión de la RPC.
+- El patrón de implementación es `SELECT … FOR UPDATE` (bloqueo de fila, en **orden estable** de
+  clave para evitar deadlocks) + un `UPDATE … WHERE saldo/stock >= monto` condicional: si
+  `NOT FOUND`, `RAISE` revierte toda la operación. Nunca se permite que el recurso quede negativo.
+- Ejemplo aplicado: `confirmar_pedido` (S11) — dos confirmaciones por la última unidad; el lock
+  serializa y el `UPDATE` condicional garantiza que nadie sobrevenda (evidencia en [ADR-014](adr/014-carrito-descuento-atomico.md)).

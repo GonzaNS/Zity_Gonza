@@ -54,4 +54,13 @@ export default defineConfig([
       },
     },
   },
+  {
+    // Sprint 11 — Specs E2E (Playwright) y su config: corren en Node, no en el browser.
+    files: ['e2e/**/*.ts', 'playwright.config.ts'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+      },
+    },
+  },
 ])

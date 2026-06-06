@@ -61,7 +61,10 @@ const CAMPOS_VACÍOS: CamposForm = {
   descripcion: '',
 }
 
-const TIPOS_FACTURA = Object.entries(LABEL_FACTURA_TIPO) as [FacturaTipo, string][]
+// 'tienda' se excluye de la emisión manual: esas facturas las genera el cierre de
+// pedidos del mes (HU-TIENDA-04 · facturar_pedidos_periodo), no el admin a mano.
+const TIPOS_FACTURA = (Object.entries(LABEL_FACTURA_TIPO) as [FacturaTipo, string][])
+  .filter(([tipo]) => tipo !== 'tienda')
 
 const FILTROS: { valor: FiltroFactura; label: string }[] = [
   { valor: 'todas',     label: 'Todas' },

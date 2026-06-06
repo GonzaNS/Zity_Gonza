@@ -21,6 +21,7 @@ import {
 } from '../../lib/tienda'
 import zityLogo from '../../assets/zity_logo.png'
 import CampanaNotificaciones from '../../components/shared/CampanaNotificaciones'
+import MiniCarrito from '../../components/residente/tienda/MiniCarrito'
 
 const CATEGORIAS: Array<{ value: FiltroCategoria; label: string }> = [
   { value: 'todas', label: 'Todas' },
@@ -90,6 +91,13 @@ export default function ResidenteTienda() {
           </Link>
           <div className="flex items-center gap-4">
             <CampanaNotificaciones />
+            <MiniCarrito />
+            <Link
+              to="/residente/tienda/historial"
+              className="text-sm text-primary-700 hover:text-primary-900 font-medium hidden sm:inline"
+            >
+              Mis pedidos
+            </Link>
             <Link
               to="/residente/facturas"
               className="text-sm text-primary-700 hover:text-primary-900 font-medium hidden sm:inline"
@@ -118,7 +126,7 @@ export default function ResidenteTienda() {
             Tienda del edificio
           </h2>
           <p className="mt-1 text-warm-400 text-sm">
-            Explora el catálogo. La compra estará disponible en la próxima versión.
+            Explora el catálogo, arma tu carrito y confirma tu pedido.
           </p>
         </div>
 

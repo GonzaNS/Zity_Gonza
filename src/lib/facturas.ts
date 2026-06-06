@@ -1,7 +1,7 @@
 // Sprint 8 · HU-FACT-01 — Tipos y utilidades para el módulo de facturas.
 //
 // Los tipos reflejan exactamente el DDL de la tabla `facturas`:
-//   tipo    → enum factura_tipo  ('luz' | 'agua' | 'pension' | 'multa')
+//   tipo    → enum factura_tipo  ('luz' | 'agua' | 'pension' | 'multa' | 'tienda')
 //   estado  → enum factura_estado ('pendiente' | 'pagada' | 'vencida')
 //   periodo → 'YYYY-MM' (validado también en BD con CHECK regex)
 //
@@ -12,7 +12,7 @@ import { supabase } from './supabase'
 
 // ─── Enums ───────────────────────────────────────────────────────────────────
 
-export type FacturaTipo       = 'luz' | 'agua' | 'pension' | 'multa'
+export type FacturaTipo       = 'luz' | 'agua' | 'pension' | 'multa' | 'tienda'
 export type FacturaEstado     = 'pendiente' | 'pagada' | 'vencida'
 /** Sprint 9 · HU-FACT-04 — método de pago. 'tarjeta' = pago en línea del residente (S10). */
 export type FacturaMetodoPago = 'efectivo' | 'transferencia' | 'otro' | 'tarjeta'
@@ -57,6 +57,7 @@ export const LABEL_FACTURA_TIPO: Record<FacturaTipo, string> = {
   agua:     'Agua',
   pension:  'Pensión',
   multa:    'Multa',
+  tienda:   'Tienda',
 }
 
 export const LABEL_FACTURA_ESTADO: Record<FacturaEstado, string> = {

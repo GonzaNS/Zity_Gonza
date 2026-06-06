@@ -2,6 +2,8 @@ import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { NotificacionesProvider } from './contexts/NotificacionesContext'
+import { CarritoProvider } from './contexts/CarritoContext'
+import CarritoLayer from './components/residente/tienda/CarritoLayer'
 import ProtectedRoute from './components/ProtectedRoute'
 import { AuthShell } from './components/AuthLayout'
 import FullPageSpinner from './components/FullPageSpinner'
@@ -23,9 +25,11 @@ const AdminAuditoria = lazy(() => import('./pages/admin/Auditoria'))
 const AdminMetricas = lazy(() => import('./pages/admin/Metricas'))     // Sprint 7 · PBI-22
 const AdminFacturacion = lazy(() => import('./pages/admin/Facturacion')) // Sprint 8 · HU-FACT-02
 const AdminTienda = lazy(() => import('./pages/admin/Tienda')) // Sprint 10 · HU-TIENDA-02
+const AdminPedidos = lazy(() => import('./pages/admin/Pedidos')) // Sprint 11 · HU-TIENDA-08
 const ResidenteDashboard = lazy(() => import('./pages/ResidenteDashboard'))
 const ResidenteFacturas = lazy(() => import('./pages/residente/Facturas')) // Sprint 8 · HU-FACT-03
 const ResidenteTienda = lazy(() => import('./pages/residente/Tienda')) // Sprint 10 · HU-TIENDA-05
+const ResidenteHistorialPedidos = lazy(() => import('./pages/residente/HistorialPedidos')) // Sprint 11 · HU-TIENDA-07
 const TecnicoDashboard = lazy(() => import('./pages/TecnicoDashboard'))
 const Perfil = lazy(() => import('./pages/Perfil'))
 const Notificaciones = lazy(() => import('./pages/Notificaciones'))
@@ -57,6 +61,7 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <NotificacionesProvider>
+        <CarritoProvider>
         <Suspense fallback={<FullPageSpinner />}>
           <Routes>
             {/* Auth routes — AuthShell se mantiene montado entre páginas; solo cambia el Outlet */}
@@ -110,6 +115,12 @@ export default function App() {
                 <AdminTienda />
               </ProtectedRoute>
             } />
+            {/* Sprint 11 · HU-TIENDA-08 — Vista admin de pedidos */}
+            <Route path="/admin/pedidos" element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminPedidos />
+              </ProtectedRoute>
+            } />
             <Route path="/residente" element={
               <ProtectedRoute allowedRoles={['residente']}>
                 <ResidenteDashboard />
@@ -125,6 +136,12 @@ export default function App() {
             <Route path="/residente/tienda" element={
               <ProtectedRoute allowedRoles={['residente']}>
                 <ResidenteTienda />
+              </ProtectedRoute>
+            } />
+            {/* Sprint 11 · HU-TIENDA-07 — Historial de pedidos del residente */}
+            <Route path="/residente/tienda/historial" element={
+              <ProtectedRoute allowedRoles={['residente']}>
+                <ResidenteHistorialPedidos />
               </ProtectedRoute>
             } />
             <Route path="/tecnico" element={
@@ -152,6 +169,8 @@ export default function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
+        <CarritoLayer />
+        </CarritoProvider>
         </NotificacionesProvider>
       </AuthProvider>
     </BrowserRouter>

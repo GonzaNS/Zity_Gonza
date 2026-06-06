@@ -426,7 +426,7 @@ def build_story(styles: dict[str, ParagraphStyle]) -> list:
         ["S9", "11", "Facturación v2: marcar pagada + recordatorios automáticos + estado 'vencida'", "v2", Paragraph("■ Planificado", styles["WarnLabel"])],
         ["S10", "12", "Tienda interna v1: admin gestiona catálogo + residente navega productos", "v2", Paragraph("■ Planificado", styles["WarnLabel"])],
         ["S11", "13", "Tienda interna v2: carrito + pedido se suma a la factura mensual", "v3", Paragraph("■ Planificado", styles["WarnLabel"])],
-        ["S12", "14", "Notificaciones avanzadas: push web + presencia (quién está online) + sonido/haptic", "v3", Paragraph("■ Planificado", styles["WarnLabel"])],
+        ["S12", "14", "Comunicación: tablón de anuncios del edificio (admin publica → residente recibe en vivo)", "v3", Paragraph("■ Planificado", styles["WarnLabel"])],
         ["S13", "15", "Panel integral del residente: solicitudes + facturas + pedidos en una sola vista", "v3", Paragraph("■ Planificado", styles["WarnLabel"])],
         ["S14", "16", "★ Dashboard ejecutivo del dueño + Release Candidate + demo final integral", "v3", Paragraph("★ Broche final", styles["WarnLabel"])],
     ]
@@ -631,33 +631,39 @@ def build_story(styles: dict[str, ParagraphStyle]) -> list:
 
     # Sprint 12
     s.extend(sprint_detail(
-        titulo="Sprint 12 — Semana 14 · Notificaciones avanzadas y experiencia en vivo",
+        titulo="Sprint 12 — Semana 14 · Comunicación: tablón de anuncios del edificio",
         semana="Semana 14",
-        sprint_goal="Subir el nivel de presencia del producto: notificaciones push web (incluso con la "
-                    "app cerrada), indicador de presencia (quién está conectado ahora mismo) y "
-                    "sonido/haptic opcional al recibir avisos.",
-        demo="Laura cierra el navegador. Carlos cambia el estado de una solicitud → Laura recibe una "
-             "notificación push en su sistema operativo (notification center), incluso sin la app abierta. "
-             "En /admin se muestra el panel de presencia: dots verdes/grises junto a cada residente "
-             "indicando si están en línea ahora. Mario activa el sonido en preferencias; al recibir una "
-             "asignación, su dispositivo vibra y suena un 'ping' corto.",
+        sprint_goal="Abrir el canal de comunicación oficial del edificio: el admin publica comunicados "
+                    "(por categoría y prioridad, con imagen opcional, con la opción de fijarlos y darles "
+                    "vigencia) y cada residente los ve al instante en un tablón, con indicador de no leído "
+                    "y la posibilidad de marcarlos como leídos.",
+        demo="Carlos (admin) abre /admin/anuncios y publica 'Corte de agua programado' (categoría "
+             "'mantenimiento', prioridad 'importante') con una imagen, y lo fija. Laura (residente), con "
+             "la app abierta, ve aparecer el anuncio al instante con badge 'Nuevo' y la campana suma 1; "
+             "al abrirlo, el badge desaparece. Laura filtra el tablón por categoría y el comunicado "
+             "fijado queda destacado arriba. Se demuestra que un residente no puede publicar (RLS) y que "
+             "un &lt;script&gt; en el cuerpo queda neutralizado (sanitización).",
         pbis=[
-            ("HU-PUSH-01", "Service Worker + Web Push: suscripción y envío desde Edge Function", "P1", "5 h"),
-            ("PBI-S6-E01", "Indicador de presencia (Supabase Presence) en panel admin con dots verdes/grises", "P2", "2 h"),
-            ("PBI-S6-E02", "Sonido + haptic feedback opcional al recibir notificación", "P2", "2 h"),
-            ("HU-PREF-01", "Preferencias de notificación en /perfil (push on/off, sonido on/off)", "P2", "2 h"),
-            ("Chore-T", "Checklist OWASP de los endpoints push y de tienda (A01/A02/A05)", "P2", "2 h"),
+            ("HU-ANUNCIO-01", "BD anuncios / anuncio_lecturas + RLS (solo admin publica) + bucket adjuntos", "P1", "2 h"),
+            ("HU-ANUNCIO-02", "Admin publica/gestiona comunicados: categoría, prioridad, imagen, fijar, vigencia", "P1", "3 h"),
+            ("HU-ANUNCIO-03", "Vista /residente/anuncios: feed con badge de no leído y marcar como leído", "P1", "3 h"),
+            ("HU-ANUNCIO-04", "Aviso Realtime + badge de no leídos en la navbar al publicar (reusa S6)", "P2", "2 h"),
+            ("Mejora", "Filtro por categoría + anuncios fijados (destacados arriba)", "P3", "1 h"),
+            ("Chore-T", "Checklist OWASP de los endpoints de anuncios (A01 acceso, A03 XSS, A05 config)", "P2", "2 h"),
         ],
         entregables=[
-            "Permiso de push solicitado y registrado por usuario en una tabla suscripciones_push.",
-            "Notificación push entregada con la app cerrada (verificable en la demo).",
-            "Panel admin con dots de presencia en vivo (verde = activo en últimos 60 s).",
-            "/perfil con toggles operativos para push y sonido.",
+            "Tablas anuncios / anuncio_lecturas operativas + RLS verificada (solo el admin publica).",
+            "/admin/anuncios con CRUD de comunicados, imagen a Storage, fijar y vigencia.",
+            "/residente/anuncios con feed en vivo, badge de no leído y marcar como leído.",
+            "Aviso Realtime + badge en la navbar al publicar un comunicado importante/urgente.",
         ],
-        chore_tecnico="Checklist OWASP top 10 aplicada a los nuevos endpoints (push y tienda). 2 h.",
+        chore_tecnico="Checklist OWASP top 10 aplicada a los endpoints de anuncios (A01 control de acceso, "
+                      "A03 sanitización del contenido / XSS, A05 configuración). 2 h.",
         dod="DoD v3.",
-        notas="Web Push necesita VAPID keys (públicas/privadas). Se generan al inicio del Sprint y se "
-              "cargan como GitHub Secrets (VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY).",
+        notas="El cuerpo del anuncio admite markdown limitado y se sanitiza en servidor (sin HTML/script), "
+              "por ser contenido publicado que ven todos los residentes. El tablón reusa el sistema de "
+              "notificaciones Realtime del S6 y el patrón de Storage del S3/S10; no requiere variables "
+              "nuevas. El Web Push avanzado se mantiene como mejora opcional post-curso.",
         styles=styles,
     ))
     s.append(PageBreak())
@@ -802,8 +808,8 @@ def build_story(styles: dict[str, ParagraphStyle]) -> list:
         ["HU-FACT-04..08", "Módulo Facturación v2 (cobros + recordatorios + vencida + PDF)", Paragraph("● P1", styles["FailLabel"]), "12 h", "S9"],
         ["HU-TIENDA-01,02,05,06", "Módulo Tienda v1 (BD + catálogo admin + vista residente + filtros)", Paragraph("● P1", styles["FailLabel"]), "10 h", "S10"],
         ["HU-TIENDA-03,04,07,08", "Módulo Tienda v2 (carrito + integración factura + historial)", Paragraph("● P1", styles["FailLabel"]), "10 h", "S11"],
-        ["HU-PUSH-01", "Service Worker + Web Push", Paragraph("● P1", styles["FailLabel"]), "5 h", "S12"],
-        ["PBI-S6-E01,E02", "Presencia + sonido/haptic", Paragraph("● P2", styles["WarnLabel"]), "4 h", "S12"],
+        ["HU-ANUNCIO-01..04", "Módulo Comunicación (tablón de anuncios del edificio + lecturas)", Paragraph("● P1", styles["FailLabel"]), "10 h", "S12"],
+        ["HU-PUSH-01, PBI-S6-E01,E02", "Web Push + presencia + sonido/haptic (mejora opcional; Realtime+email del S6 ya cubre el aviso)", Paragraph("● P3", styles["OkLabel"]), "9 h", "Post-curso"],
         ["HU-HOME-01..04", "Panel integral del residente (3 tarjetas)", Paragraph("● P1", styles["FailLabel"]), "10 h", "S13"],
         ["PBI-S6-E03", "Sesiones activas + cerrar todas al cambiar contraseña", Paragraph("● P2", styles["WarnLabel"]), "2 h", "S13"],
         ["HU-EJEC-01..04", "Dashboard ejecutivo del dueño del edificio", Paragraph("● P1", styles["FailLabel"]), "10 h", "S14"],
@@ -833,7 +839,7 @@ def build_story(styles: dict[str, ParagraphStyle]) -> list:
         ["Sprint 10 → Sprint 11", "El catálogo y BD de tienda (S10) son prerrequisito del carrito (S11)."],
         ["Sprint 8/9/10/11 → Sprint 14", "El dashboard ejecutivo consume todos los datos de los módulos funcionales previos."],
         ["Sprint 6 (Realtime) → Sprint 8", "El sistema de notificaciones del S6 se reusa para notificar emisión de facturas."],
-        ["Sprint 6 (Realtime) → Sprint 12", "La infraestructura de notificaciones del S6 se extiende con Web Push en S12."],
+        ["Sprint 6 (Realtime) → Sprint 12", "El sistema de notificaciones Realtime del S6 se reusa para avisar en vivo de los nuevos anuncios del tablón (S12)."],
     ]
     s.append(grid_table(dep_header, dep_rows, [1.6 * inch, 5.15 * inch], styles))
 
@@ -853,8 +859,8 @@ def build_story(styles: dict[str, ParagraphStyle]) -> list:
          "Las gráficas con Recharts pueden inflar el bundle.",
          "Code splitting por ruta (lazy load de /admin/metricas y /admin/ejecutivo). Validar en el chore Lighthouse del S13."],
         ["R-RM5",
-         "Web Push (S12) requiere HTTPS y permisos del navegador; en algunos contextos no se puede demostrar.",
-         "Mantener el flujo simulado (Realtime + email) como fallback en la demo. El push real se muestra como bonus si el entorno lo permite."],
+         "El contenido publicado en el tablón de anuncios (S12) podría incluir HTML/script malicioso (XSS), visible para todos los residentes.",
+         "Sanitización del contenido en servidor (markdown limitado, sin HTML/script) + render seguro; control de acceso por RLS (solo el admin publica). Cubierto por el chore OWASP del S12 (A01/A03)."],
         ["R-RM6",
          "Concurrencia en descuento de stock de la tienda (S11) puede llevar a sobreventa.",
          "Descuento atómico en transacción Postgres con SELECT ... FOR UPDATE o constraint check; test de concurrencia explícito."],

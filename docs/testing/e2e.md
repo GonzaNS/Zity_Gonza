@@ -5,6 +5,15 @@ Documento "vivo" sobre cómo escribimos, corremos y mantenemos los E2E de Zity. 
 > [!IMPORTANT]
 > **Filosofía del proyecto (PDF Sprint 7):** la suite E2E crece como chore en cada Sprint funcional — **1 E2E nuevo por módulo nuevo** (S8 facturación, S10 tienda, etc.). Nunca como sprint dedicado.
 
+> [!NOTE]
+> **Estado real (Sprint 11):** Playwright quedó **instalado y funcional** en el S11, con el
+> primer E2E del flujo crítico de la tienda: `e2e/tests/carrito-pedido.spec.ts`
+> (carrito → confirmar → historial). Es un **smoke LOCAL**: por decisión de alcance del
+> Sprint 11 **no** se añadió como gate de CI (no existe `e2e.yml`). El descuento atómico de
+> stock se valida además con una prueba de concurrencia ejecutada contra la BD (ver ADR-014).
+> Las secciones de "Workflow CI" más abajo quedan como guía para cuando se decida promover
+> el E2E a gate (S12+).
+
 ---
 
 ## Setup local
@@ -65,10 +74,8 @@ Esto significa que puedes:
 
 ```
 e2e/
-├── fixtures/              ← datos / archivos / helpers reutilizables
-│   └── test-image.png.ts  ← PNG dummy 1×1 generado en memoria
 └── tests/                 ← specs (.spec.ts)
-    └── crear-solicitud.spec.ts   ← Sprint 7 · chore-T (semilla)
+    └── carrito-pedido.spec.ts    ← Sprint 11 · HU-TIENDA-03 (primer E2E real)
 ```
 
 ### Convenciones
@@ -80,9 +87,13 @@ e2e/
 
 ---
 
-## Workflow CI
+## Workflow CI (propuesto — aún no activo)
 
-`.github/workflows/e2e.yml` corre la suite en cada push/PR a `main`:
+> [!NOTE]
+> En el Sprint 11 el E2E quedó como smoke **local**; el workflow de abajo es la **guía**
+> para promoverlo a gate en un Sprint futuro. Aún **no** existe `e2e.yml`.
+
+Cuando se active, `.github/workflows/e2e.yml` correría la suite en cada push/PR a `main`:
 
 1. Setup Node 24 + `npm ci`
 2. Validación temprana: chequea que `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` estén configurados como GitHub Secrets. Si no, falla con mensaje claro apuntando aquí.
@@ -113,7 +124,7 @@ Configurar en **Settings → Secrets and variables → Actions → New repositor
 | S8 (Facturación) | "Admin emite factura → residente la ve" |
 | S9 (Facturación v2) | "Marcar factura como pagada + PDF descargable" |
 | S10 (Tienda v1) | "Admin gestiona catálogo: agregar producto con foto" |
-| S11 (Tienda v2) | "Residente agrega al carrito → descuento de stock atómico" |
+| S11 (Tienda v2) | ✅ **Hecho** — `carrito-pedido.spec.ts` (carrito → confirmar → historial) |
 | S12 (Notificaciones avanzadas) | "Web Push se entrega y aparece en /notificaciones" |
 | S13 (Panel residente integral) | "Residente ve sus 3 dominios en una sola vista" |
 | S14 (Dashboard ejecutivo) | "Dueño abre dashboard ejecutivo y ve los 3 dominios" |

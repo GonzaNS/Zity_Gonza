@@ -57,6 +57,11 @@ const ICONO_TIPO: Record<FacturaTipo, React.ReactNode> = {
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
     </svg>
   ),
+  tienda: (
+    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+    </svg>
+  ),
 }
 
 const COLOR_TIPO: Record<FacturaTipo, string> = {
@@ -64,6 +69,7 @@ const COLOR_TIPO: Record<FacturaTipo, string> = {
   agua:    'bg-blue-50 text-blue-600',
   pension: 'bg-primary-50 text-primary-600',
   multa:   'bg-error/10 text-error',
+  tienda:  'bg-accent-50 text-accent-600',
 }
 
 const FILTROS: { valor: FiltroFactura; label: string }[] = [

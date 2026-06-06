@@ -13,6 +13,7 @@ import {
   BADGE_STOCK,
   type Producto,
 } from '../../../lib/tienda'
+import BotonAgregarCarrito from './BotonAgregarCarrito'
 
 type Props = {
   producto: Producto
@@ -87,21 +88,9 @@ export default function DetalleProductoModal({ producto, fotoUrl, onClose }: Pro
               <p className="text-sm text-primary-800 mt-4 leading-relaxed">{producto.descripcion}</p>
             )}
 
-            {/* Placeholder del S11: carrito deshabilitado */}
+            {/* Sprint 11 · HU-TIENDA-03 — agregar al carrito (tope = stock) */}
             <div className="mt-6">
-              <button
-                type="button"
-                disabled
-                title="Disponible en la próxima versión"
-                aria-disabled="true"
-                className="w-full h-11 text-sm font-semibold text-warm-400 bg-warm-100 border border-warm-200 rounded-xl cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-                Agregar al carrito
-              </button>
-              <p className="text-xs text-warm-400 text-center mt-2">Disponible en la próxima versión</p>
+              <BotonAgregarCarrito producto={producto} full />
             </div>
           </div>
         </section>
