@@ -348,6 +348,50 @@ async function seedNotificaciones(ids) {
   }
 }
 
+// Sprint 12 — Anuncios demo del tablón (publicados por el admin Carlos).
+// IDs deterministas + upsert → idempotente (re-correr no duplica). El trigger
+// after_anuncio_publicado solo notifica los importante/urgente (no los normal).
+async function seedAnuncios(ids) {
+  const adminId = ids['carlos@zity-demo.com']
+  if (!adminId) { console.warn('Sin admin demo; omito anuncios.'); return }
+
+  console.log('Sembrando anuncios demo del tablón...')
+  const en30dias = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10)
+
+  const anuncios = [
+    {
+      id: 'a1a1a1a1-0000-4000-8000-000000000001',
+      titulo: 'Bienvenidos al tablón de anuncios',
+      cuerpo: 'Desde ahora la administración publicará aquí los **comunicados oficiales** del edificio.\n\n- Avisos de mantenimiento\n- Convocatorias a asamblea\n- Recordatorios de seguridad\n\nActiva las notificaciones para enterarte al instante.',
+      categoria: 'general', prioridad: 'normal', fijado: true, imagen_url: null, vigente_hasta: null,
+    },
+    {
+      id: 'a1a1a1a1-0000-4000-8000-000000000002',
+      titulo: 'Mantenimiento del ascensor el sábado',
+      cuerpo: 'El **sábado de 8:00 a 12:00** se realizará el mantenimiento preventivo del ascensor principal. Durante ese lapso usa el ascensor de servicio. Disculpa las molestias.',
+      categoria: 'mantenimiento', prioridad: 'importante', fijado: false,
+      imagen_url: 'https://picsum.photos/seed/zity-ascensor/800/450', vigente_hasta: null,
+    },
+    {
+      id: 'a1a1a1a1-0000-4000-8000-000000000003',
+      titulo: 'Convocatoria a asamblea general',
+      cuerpo: 'Se convoca a **asamblea general de propietarios** para revisar el presupuesto anual.\n\nRevisa la fecha y el orden del día en el documento adjunto. Tu participación es importante.',
+      categoria: 'asamblea', prioridad: 'normal', fijado: false,
+      imagen_url: 'https://picsum.photos/seed/zity-asamblea/800/450', vigente_hasta: en30dias,
+    },
+    {
+      id: 'a1a1a1a1-0000-4000-8000-000000000004',
+      titulo: 'Recordatorio de seguridad',
+      cuerpo: 'Recuerda **no abrir la puerta principal a desconocidos** y cerrar bien la cochera al salir. Ante cualquier emergencia, contacta a la administración.',
+      categoria: 'seguridad', prioridad: 'normal', fijado: false, imagen_url: null, vigente_hasta: null,
+    },
+  ].map(a => ({ ...a, publicado_por: adminId }))
+
+  const { error } = await supabase.from('anuncios').upsert(anuncios, { onConflict: 'id' })
+  if (error) console.error('  Error anuncios:', error.message)
+  else console.log(`  ✓ ${anuncios.length} anuncios demo (1 fijado, 2 con imagen)`)
+}
+
 async function main() {
   // `--clean` borra los datos demo antes de insertar (uso recomendado en
   // staging después de pruebas manuales). Sin la bandera el seed es
@@ -361,6 +405,8 @@ async function main() {
   await seedSolicitudes(ids)
   // Sprint 8 — facturas demo (mes pasado pagadas + mes actual pendientes)
   await seedFacturas(ids)
+  // Sprint 12 — anuncios demo del tablón
+  await seedAnuncios(ids)
   // Sprint 6 — notificaciones demo opcionales para la Review.
   if (process.argv.includes('--notify')) {
     await seedNotificaciones(ids)

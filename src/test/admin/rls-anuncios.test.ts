@@ -135,7 +135,7 @@ describe('RLS anuncios — comportamiento por rol', () => {
     })
 
     const { supabase } = await import('../../lib/supabase')
-    const { data } = await supabase.from('anuncio_lecturas').select('anuncio_id').eq('residente_id', lauraUuid)
+    const { data } = await supabase.from('anuncio_lecturas').select('*').eq('residente_id', lauraUuid)
 
     expect(data).toHaveLength(2)
     expect(data?.every(l => l.residente_id === lauraUuid)).toBe(true)

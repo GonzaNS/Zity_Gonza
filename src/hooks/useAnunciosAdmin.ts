@@ -18,18 +18,32 @@ import {
 /** TTL de la URL firmada del adjunto, 1 hora (igual que productos-fotos). */
 const SIGNED_URL_TTL = 60 * 60
 
-/** Firma una lista de paths del bucket anuncios-adjuntos (TTL 1 h). */
+/**
+ * Firma una lista de paths del bucket anuncios-adjuntos (TTL 1 h). Si un valor ya
+ * es una URL absoluta (http(s)://…, p. ej. el seed con picsum), se devuelve tal
+ * cual sin firmar — mismo criterio que firmarUrls del módulo de solicitudes.
+ */
 export async function firmarAdjuntos(paths: Array<string | null>): Promise<Map<string, string>> {
   const result = new Map<string, string>()
-  const relativas = [...new Set(paths.filter((p): p is string => !!p))]
-  if (relativas.length === 0) return result
+  const limpios = [...new Set(paths.filter((p): p is string => !!p))]
+  if (limpios.length === 0) return result
 
-  const { data } = await supabase.storage
-    .from(BUCKET_ANUNCIOS)
-    .createSignedUrls(relativas, SIGNED_URL_TTL)
+  const absolutas: string[] = []
+  const relativas: string[] = []
+  for (const p of limpios) {
+    if (/^https?:\/\//i.test(p)) absolutas.push(p)
+    else relativas.push(p)
+  }
 
-  for (const item of data ?? []) {
-    if (item.path && item.signedUrl) result.set(item.path, item.signedUrl)
+  for (const url of absolutas) result.set(url, url)
+
+  if (relativas.length > 0) {
+    const { data } = await supabase.storage
+      .from(BUCKET_ANUNCIOS)
+      .createSignedUrls(relativas, SIGNED_URL_TTL)
+    for (const item of data ?? []) {
+      if (item.path && item.signedUrl) result.set(item.path, item.signedUrl)
+    }
   }
   return result
 }

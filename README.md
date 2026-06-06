@@ -120,6 +120,7 @@ La documentación completa del modelo de datos y las policies RLS vive en `docs/
 | Usuarios | `usuarios`, `invitaciones`, `edificios`, `unidades` | ✅ operativo (Sprint 2) |
 | Mantenimiento v1 | `solicitudes`, `asignaciones`, `historial_estados` | ✅ residente crea con foto + admin visualiza (Sprint 3) |
 | Mantenimiento v2 | (uso de `asignaciones`) | 🔜 vista del técnico + asignación (Sprint 4) |
+| Comunicación | `anuncios`, `anuncio_lecturas` | ✅ tablón de anuncios: el admin publica (categoría, prioridad, imagen/PDF, fijar, vigencia) y el residente lo recibe en vivo y marca leído (Sprint 12) |
 | Soporte global | `notificaciones`, `audit_log` | ✅ disponible |
 
 ### Storage

@@ -95,6 +95,7 @@ transiciones existen y quién las dispara). El enum vive en BD; el front solo re
 |---|---|---|---|
 | **Pedido** (`pedido_estado`) | `borrador` → `confirmado` → `facturado` | borrador→confirmado: `confirmar_pedido` (descuento atómico de stock). confirmado→facturado: `facturar_pedidos_periodo` (cierre de mes). | Residente confirma; cron/admin factura. No hay vuelta atrás (cancelar pedido confirmado es PBI-S11-E02, futuro). |
 | **Factura** (`factura_estado`) | `pendiente` → `pagada` · `pendiente` → `vencida` | pendiente→pagada: `registrar_pago_factura` (admin) o `pagar_factura_residente`. pendiente→vencida: job diario si `vencimiento < hoy_lima`. | Idempotente en ambas (no reescribe si ya está en el estado destino). |
+| **Anuncio** (`archivado` + `vigente_hasta`) | `vigente` → `vencido` (al pasar `vigente_hasta`) · `vigente` → `archivado` (baja lógica) | vigente→vencido: automático por fecha (`vigente_hasta < hoy_lima`), el feed lo oculta. vigente→archivado: el admin archiva (`archivarAnuncio`), reversible (restaurar). | El residente solo ve los vigentes (RLS); nunca DELETE. Ver [ADR-016](adr/016-modelo-tablon-anuncios.md). |
 
 - **Una sola fuente de la transición:** cada cambio de estado pasa por su RPC/job
   `SECURITY DEFINER`; la UI nunca hace `UPDATE estado` directo.
@@ -111,3 +112,23 @@ transiciones existen y quién las dispara). El enum vive en BD; el front solo re
   `NOT FOUND`, `RAISE` revierte toda la operación. Nunca se permite que el recurso quede negativo.
 - Ejemplo aplicado: `confirmar_pedido` (S11) — dos confirmaciones por la última unidad; el lock
   serializa y el `UPDATE` condicional garantiza que nadie sobrevenda (evidencia en [ADR-014](adr/014-carrito-descuento-atomico.md)).
+
+## 12. Política de notificaciones (Retro S12 · Acción 1)
+
+Antes de implementar un evento que notifique, se define aquí **qué eventos notifican, a quién y
+con qué prioridad**, para no generar spam ni avisos de más. La notificación in-app (tabla
+`notificaciones` + Realtime del S6) es la fuente de verdad; el email (Resend) es best-effort (§4).
+
+| Evento | Notifica a | Cuándo | Tipo |
+|---|---|---|---|
+| Cambio de estado / asignación de solicitud | Residente dueño (y técnico/admin según el caso) | Siempre | `estado_cambio`, `asignacion`, … |
+| Factura nueva / pagada | Residente dueño | Siempre | `factura_nueva`, `factura_pagada` |
+| Factura por vencer | Residente dueño | 3 días antes **y** el día del vencimiento (S12 · PBI-S9-E02) | `factura_por_vencer` |
+| **Anuncio publicado** | Todos los residentes activos | **Solo** si la prioridad es `importante`/`urgente` — los `normal` no notifican (R5) | `anuncio_nuevo` |
+
+Reglas:
+
+- Un evento "de fondo" (un anuncio `normal`, un dato que solo aparece en una lista) **no**
+  interrumpe: se refleja en el feed o badge correspondiente sin forzar notificación.
+- El contador de no leídos se **recalcula desde BD**, no se acumula en memoria (R3 del S12).
+- La decisión de notificar vive en el trigger (`SECURITY DEFINER`, best-effort), nunca en el cliente.

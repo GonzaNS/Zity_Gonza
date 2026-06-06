@@ -8,6 +8,7 @@
 |---|---|---|---|---|
 | `solicitudes-fotos` | Privado | `image/jpeg`, `image/png` | 5 MB | 3 |
 | `productos-fotos` | Privado | `image/jpeg`, `image/png` | 2 MB | 10 |
+| `anuncios-adjuntos` | Privado | `image/jpeg`, `image/png`, `application/pdf` | 2 MB | 12 |
 
 ## Naming convention
 
@@ -69,6 +70,30 @@ y sus policies se **versionan** en la migración `20260530150000_sprint10_tienda
 La lectura es abierta a authenticated (residente y técnico ven el catálogo); el
 control efectivo lo dan las URLs firmadas (1 h) y que solo el admin gestiona el
 contenido. Sin foto → la UI muestra un placeholder.
+
+## Bucket `anuncios-adjuntos` (Sprint 12 · Comunicación)
+
+Adjunto (imagen **o PDF**) de un comunicado del tablón. Reusa el patrón de `productos-fotos`
+con dos diferencias: admite **`application/pdf`** además de JPEG/PNG, y el límite es **2 MB**.
+Solo el admin escribe (los sube desde `/admin/anuncios`), así que las policies validan el **rol**.
+
+**Naming:** `{anuncio_id}/{timestamp}_{nombre_seguro}.{ext}` — la fuente de verdad es
+`pathAdjuntoAnuncio` en `src/lib/anuncios.ts`. `anuncios.imagen_url` guarda el **path** (no la URL
+pública); se firma al mostrar con `createSignedUrls(paths, 3600)` vía `firmarAdjuntos`. Si el path
+termina en `.pdf`, la UI muestra un enlace al documento en vez de una imagen embebida (`esPdf`).
+
+El bucket y sus policies se **versionan** en la migración `20260613120000_sprint12_anuncios_tablon.sql`.
+
+| Policy | Comando | Roles | Filtro |
+|---|---|---|---|
+| `anuncios_adjuntos_admin_insert` | INSERT | authenticated | `bucket_id='anuncios-adjuntos' AND get_user_rol()='admin'` |
+| `anuncios_adjuntos_select_authenticated` | SELECT | authenticated | `bucket_id='anuncios-adjuntos'` |
+| `anuncios_adjuntos_admin_update` | UPDATE | authenticated | `bucket_id='anuncios-adjuntos' AND get_user_rol()='admin'` |
+| `anuncios_adjuntos_admin_delete` | DELETE | authenticated | `bucket_id='anuncios-adjuntos' AND get_user_rol()='admin'` |
+
+La validación de tipo/peso es **doble** (R4): en el cliente (`validarAdjunto`) y en el propio
+bucket (`allowed_mime_types` + `file_size_limit`), de modo que un `upload` directo tampoco acepta
+un tipo o tamaño no permitido.
 
 ## Configuración local
 
