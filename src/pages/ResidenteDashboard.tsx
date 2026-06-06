@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { useNavigate, useSearchParams, Link } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { useSolicitudes, useFotosFirmadas } from '../hooks/useSolicitudes'
 import ModalNuevaSolicitud from '../components/residente/ModalNuevaSolicitud'
 // HU-MANT-05 SPRINT-4 — Drawer de detalle con historial para el residente
@@ -10,8 +10,7 @@ import { useSolicitudesPendientesConfirmacion } from '../hooks/useConfirmarSolic
 import CardConfirmacion from '../components/residente/solicitudes/CardConfirmacion'
 import { labelCategoria, labelTipo } from '../lib/solicitudes'
 import { tiempoTranscurrido } from '../lib/format'
-import zityLogo from '../assets/zity_logo.png'
-import CampanaNotificaciones from '../components/shared/CampanaNotificaciones'
+import ResidenteHeader from '../components/residente/ResidenteHeader'
 import type { EstadoSolicitud, Solicitud } from '../types/database'
 
 const ESTADO_BADGE: Record<EstadoSolicitud, string> = {
@@ -31,8 +30,7 @@ const ESTADO_LABEL: Record<EstadoSolicitud, string> = {
 }
 
 export default function ResidenteDashboard() {
-  const { profile, signOut, user } = useAuth()
-  const navigate = useNavigate()
+  const { profile, user } = useAuth()
 
   const [mostrarModal, setMostrarModal] = useState(false)
   const [confirmacionId, setConfirmacionId] = useState<string | null>(null)
@@ -77,11 +75,6 @@ export default function ResidenteDashboard() {
     }, { replace: true })
   }
 
-  async function handleSignOut() {
-    await signOut()
-    navigate('/login', { replace: true })
-  }
-
   function handleCreada(solicitud: Solicitud) {
     setConfirmacionId(solicitud.codigo ?? solicitud.id)
     refetch()
@@ -90,50 +83,7 @@ export default function ResidenteDashboard() {
 
   return (
     <div className="min-h-screen bg-warm-50">
-      <header className="bg-white border-b border-warm-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <img src={zityLogo} alt="Zity" className="h-9 w-auto" />
-            <span className="text-xs font-semibold bg-accent-500 text-white px-2.5 py-1 rounded-full tracking-wider uppercase">
-              Residente
-            </span>
-          </div>
-          <div className="flex items-center gap-4">
-            <CampanaNotificaciones />
-            
-            {/* Sprint 5 · PBI-S2-E03 — link a perfil propio */}
-            <Link
-              to="/perfil"
-              className="text-sm text-primary-700 hover:text-primary-900 font-medium hidden sm:inline"
-              title="Editar mi perfil"
-            >
-              {profile?.nombre} {profile?.apellido}
-            </Link>
-            {/* Sprint 8 · HU-FACT-03 — link a facturas */}
-            <Link
-              to="/residente/facturas"
-              className="text-sm text-primary-700 hover:text-primary-900 font-medium hidden sm:inline"
-              title="Ver mis facturas"
-            >
-              Mis facturas
-            </Link>
-            {/* Sprint 10 · HU-TIENDA-05 — link a la tienda */}
-            <Link
-              to="/residente/tienda"
-              className="text-sm text-primary-700 hover:text-primary-900 font-medium hidden sm:inline"
-              title="Ver la tienda del edificio"
-            >
-              Tienda
-            </Link>
-            <button
-              onClick={handleSignOut}
-              className="text-sm text-warm-400 hover:text-error transition-colors font-medium whitespace-nowrap cursor-pointer"
-            >
-              Cerrar sesión
-            </button>
-          </div>
-        </div>
-      </header>
+      <ResidenteHeader />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
         <div className="animate-fade-in flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">

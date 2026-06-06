@@ -6,58 +6,24 @@
 // el enlace a su factura de tienda.
 
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { useAuth } from '../../contexts/AuthContext'
+import { Link } from 'react-router-dom'
 import { usePedidosResidente } from '../../hooks/usePedidosResidente'
 import { formatearPrecio, BADGE_PEDIDO_ESTADO, type PedidoConItems } from '../../lib/pedidos'
 import DetallePedidoModal from '../../components/residente/tienda/DetallePedidoModal'
-import CampanaNotificaciones from '../../components/shared/CampanaNotificaciones'
 import MiniCarrito from '../../components/residente/tienda/MiniCarrito'
-import zityLogo from '../../assets/zity_logo.png'
+import ResidenteHeader from '../../components/residente/ResidenteHeader'
 
 function formatearFecha(iso: string): string {
   return new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 export default function HistorialPedidos() {
-  const { profile, signOut } = useAuth()
-  const navigate = useNavigate()
   const { pedidos, loading, error } = usePedidosResidente()
   const [seleccionado, setSeleccionado] = useState<PedidoConItems | null>(null)
 
-  async function handleSignOut() {
-    await signOut()
-    navigate('/login', { replace: true })
-  }
-
   return (
     <div className="min-h-screen bg-warm-50">
-      <header className="bg-white border-b border-warm-200">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-          <Link to="/residente/tienda" className="flex items-center gap-4">
-            <img src={zityLogo} alt="Zity" className="h-9 w-auto" />
-            <span className="text-xs font-semibold bg-accent-500 text-white px-2.5 py-1 rounded-full tracking-wider uppercase">
-              Residente
-            </span>
-          </Link>
-          <div className="flex items-center gap-4">
-            <CampanaNotificaciones />
-            <MiniCarrito />
-            <Link to="/residente/tienda" className="text-sm text-primary-700 hover:text-primary-900 font-medium hidden sm:inline">
-              Tienda
-            </Link>
-            <Link to="/perfil" className="text-sm text-primary-700 hover:text-primary-900 font-medium hidden sm:inline">
-              {profile?.nombre} {profile?.apellido}
-            </Link>
-            <button
-              onClick={handleSignOut}
-              className="text-sm text-warm-400 hover:text-error transition-colors font-medium whitespace-nowrap cursor-pointer"
-            >
-              Cerrar sesión
-            </button>
-          </div>
-        </div>
-      </header>
+      <ResidenteHeader slot={<MiniCarrito />} />
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
         <div className="animate-fade-in">

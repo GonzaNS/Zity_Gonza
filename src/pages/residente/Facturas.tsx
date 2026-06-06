@@ -10,10 +10,9 @@
 //   • RLS garantiza que solo se muestren facturas del usuario autenticado.
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useNavigate, Link, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { supabase } from '../../lib/supabase'
-import CampanaNotificaciones from '../../components/shared/CampanaNotificaciones'
 import {
   useFacturasResidente,
   type FiltroFactura,
@@ -32,7 +31,7 @@ import {
 } from '../../lib/facturas'
 import { descargarComprobante } from '../../lib/comprobante'
 import ModalPagoSimulado from '../../components/residente/ModalPagoSimulado'
-import zityLogo from '../../assets/zity_logo.png'
+import ResidenteHeader from '../../components/residente/ResidenteHeader'
 
 // ─── Iconos por tipo de factura ─────────────────────────────────────────────
 
@@ -215,36 +214,7 @@ export default function ResidenteFacturas() {
 
   return (
     <div className="min-h-screen bg-warm-50">
-      {/* Header */}
-      <header className="bg-white border-b border-warm-200">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => navigate('/residente')}
-              className="text-warm-400 hover:text-primary-700 transition-colors cursor-pointer mr-1"
-              aria-label="Volver al dashboard"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <img src={zityLogo} alt="Zity" className="h-8 w-auto" />
-            <span className="text-xs font-semibold bg-accent-500 text-white px-2.5 py-1 rounded-full tracking-wider uppercase">
-              Residente
-            </span>
-          </div>
-          <div className="flex items-center gap-3">
-            <CampanaNotificaciones />
-            <Link to="/perfil" className="text-sm text-primary-700 font-medium hidden sm:inline hover:text-primary-900">
-              {profile?.nombre}
-            </Link>
-            <button onClick={handleSignOut} className="text-sm text-warm-400 hover:text-error transition-colors font-medium whitespace-nowrap cursor-pointer">
-              Cerrar sesión
-            </button>
-          </div>
-        </div>
-      </header>
+      <ResidenteHeader />
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
         {/* Título + cabecera de total */}

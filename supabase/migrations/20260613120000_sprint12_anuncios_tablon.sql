@@ -322,6 +322,12 @@ DO $$ BEGIN
   ALTER PUBLICATION supabase_realtime ADD TABLE public.anuncios;
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
+-- anuncio_lecturas también: el badge de 'no leídos' del residente baja en vivo
+-- cuando registra una lectura (la RLS/filtro entrega solo las propias).
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.anuncio_lecturas;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
 -- ────────────────────────────────────────────────────────────
 -- PARTE J: Bucket anuncios-adjuntos + políticas de Storage
 -- ────────────────────────────────────────────────────────────

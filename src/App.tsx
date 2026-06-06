@@ -26,10 +26,12 @@ const AdminMetricas = lazy(() => import('./pages/admin/Metricas'))     // Sprint
 const AdminFacturacion = lazy(() => import('./pages/admin/Facturacion')) // Sprint 8 · HU-FACT-02
 const AdminTienda = lazy(() => import('./pages/admin/Tienda')) // Sprint 10 · HU-TIENDA-02
 const AdminPedidos = lazy(() => import('./pages/admin/Pedidos')) // Sprint 11 · HU-TIENDA-08
+const AdminAnuncios = lazy(() => import('./pages/admin/Anuncios')) // Sprint 12 · HU-ANUNCIO-02
 const ResidenteDashboard = lazy(() => import('./pages/ResidenteDashboard'))
 const ResidenteFacturas = lazy(() => import('./pages/residente/Facturas')) // Sprint 8 · HU-FACT-03
 const ResidenteTienda = lazy(() => import('./pages/residente/Tienda')) // Sprint 10 · HU-TIENDA-05
 const ResidenteHistorialPedidos = lazy(() => import('./pages/residente/HistorialPedidos')) // Sprint 11 · HU-TIENDA-07
+const ResidenteAnuncios = lazy(() => import('./pages/residente/Anuncios')) // Sprint 12 · HU-ANUNCIO-03
 const TecnicoDashboard = lazy(() => import('./pages/TecnicoDashboard'))
 const Perfil = lazy(() => import('./pages/Perfil'))
 const Notificaciones = lazy(() => import('./pages/Notificaciones'))
@@ -121,6 +123,12 @@ export default function App() {
                 <AdminPedidos />
               </ProtectedRoute>
             } />
+            {/* Sprint 12 · HU-ANUNCIO-02 — Tablón de anuncios (admin) */}
+            <Route path="/admin/anuncios" element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminAnuncios />
+              </ProtectedRoute>
+            } />
             <Route path="/residente" element={
               <ProtectedRoute allowedRoles={['residente']}>
                 <ResidenteDashboard />
@@ -142,6 +150,12 @@ export default function App() {
             <Route path="/residente/tienda/historial" element={
               <ProtectedRoute allowedRoles={['residente']}>
                 <ResidenteHistorialPedidos />
+              </ProtectedRoute>
+            } />
+            {/* Sprint 12 · HU-ANUNCIO-03 — Tablón de anuncios (residente) */}
+            <Route path="/residente/anuncios" element={
+              <ProtectedRoute allowedRoles={['residente']}>
+                <ResidenteAnuncios />
               </ProtectedRoute>
             } />
             <Route path="/tecnico" element={

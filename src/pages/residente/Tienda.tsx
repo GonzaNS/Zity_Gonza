@@ -7,8 +7,7 @@
 // detalle del producto con el botón "Agregar al carrito" deshabilitado (S11).
 
 import { useState, useEffect, useRef } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { useAuth } from '../../contexts/AuthContext'
+import { Link } from 'react-router-dom'
 import { useTiendaResidente } from '../../hooks/useTiendaResidente'
 import CardProducto from '../../components/residente/tienda/CardProducto'
 import DetalleProductoModal from '../../components/residente/tienda/DetalleProductoModal'
@@ -19,8 +18,7 @@ import {
   type FiltroCategoria,
   type FiltroDisponibilidad,
 } from '../../lib/tienda'
-import zityLogo from '../../assets/zity_logo.png'
-import CampanaNotificaciones from '../../components/shared/CampanaNotificaciones'
+import ResidenteHeader from '../../components/residente/ResidenteHeader'
 import MiniCarrito from '../../components/residente/tienda/MiniCarrito'
 
 const CATEGORIAS: Array<{ value: FiltroCategoria; label: string }> = [
@@ -35,9 +33,6 @@ const DISPONIBILIDAD: Array<{ value: FiltroDisponibilidad; label: string }> = [
 ]
 
 export default function ResidenteTienda() {
-  const { profile, signOut } = useAuth()
-  const navigate = useNavigate()
-
   const [categoria, setCategoria] = useState<FiltroCategoria>('todas')
   const [disponibilidad, setDisponibilidad] = useState<FiltroDisponibilidad>('todas')
   const [busquedaInput, setBusquedaInput] = useState('')
@@ -74,23 +69,11 @@ export default function ResidenteTienda() {
     setBusquedaInput('')
   }
 
-  async function handleSignOut() {
-    await signOut()
-    navigate('/login', { replace: true })
-  }
-
   return (
     <div className="min-h-screen bg-warm-50">
-      <header className="bg-white border-b border-warm-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-          <Link to="/residente" className="flex items-center gap-4">
-            <img src={zityLogo} alt="Zity" className="h-9 w-auto" />
-            <span className="text-xs font-semibold bg-accent-500 text-white px-2.5 py-1 rounded-full tracking-wider uppercase">
-              Residente
-            </span>
-          </Link>
-          <div className="flex items-center gap-4">
-            <CampanaNotificaciones />
+      <ResidenteHeader
+        slot={
+          <>
             <MiniCarrito />
             <Link
               to="/residente/tienda/historial"
@@ -98,27 +81,9 @@ export default function ResidenteTienda() {
             >
               Mis pedidos
             </Link>
-            <Link
-              to="/residente/facturas"
-              className="text-sm text-primary-700 hover:text-primary-900 font-medium hidden sm:inline"
-            >
-              Mis facturas
-            </Link>
-            <Link
-              to="/perfil"
-              className="text-sm text-primary-700 hover:text-primary-900 font-medium hidden sm:inline"
-            >
-              {profile?.nombre} {profile?.apellido}
-            </Link>
-            <button
-              onClick={handleSignOut}
-              className="text-sm text-warm-400 hover:text-error transition-colors font-medium whitespace-nowrap cursor-pointer"
-            >
-              Cerrar sesión
-            </button>
-          </div>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
         <div className="animate-fade-in">
