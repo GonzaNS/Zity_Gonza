@@ -228,8 +228,13 @@ export default function Register() {
                   value={step1.email}
                   onChange={e => setStep1(prev => ({ ...prev, email: e.target.value }))}
                   placeholder="tu@correo.com"
-                  className={`input-field pl-10 ${step1Errors.email ? 'error' : ''}`}
+                  className={`input-field has-icon ${step1Errors.email ? 'error' : ''}`}
                 />
+                <span className="field-icon">
+                  <svg className="w-[1.15rem] h-[1.15rem]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </span>
               </div>
               {step1Errors.email && <FieldError message={step1Errors.email} />}
             </div>
@@ -333,10 +338,15 @@ export default function Register() {
                   value={step2.telefono}
                   onChange={e => handleTelefonoChange(e.target.value)}
                   placeholder="+51 999 999 999"
-                  className={`input-field pl-10 ${step2Errors.telefono ? 'error' : ''}`}
+                  className={`input-field has-icon ${step2Errors.telefono ? 'error' : ''}`}
                   disabled={loading}
                   maxLength={15}
                 />
+                <span className="field-icon">
+                  <svg className="w-[1.15rem] h-[1.15rem]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  </svg>
+                </span>
               </div>
               {step2Errors.telefono && <FieldError message={step2Errors.telefono} />}
             </div>

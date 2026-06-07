@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import AuthLayout from '../components/AuthLayout'
@@ -12,6 +12,16 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [remember, setRemember] = useState(false)
+
+  // "Recordarme": precarga el correo guardado en visitas anteriores (sin tocar la sesión).
+  useEffect(() => {
+    const savedEmail = localStorage.getItem('zity_remember_email')
+    if (savedEmail) {
+      setEmail(savedEmail)
+      setRemember(true)
+    }
+  }, [])
 
   const successMessage = (location.state as { message?: string })?.message
 
@@ -26,6 +36,10 @@ export default function Login() {
     e.preventDefault()
     setError('')
     setSubmitting(true)
+
+    // Persiste (o limpia) el correo recordado según la preferencia.
+    if (remember) localStorage.setItem('zity_remember_email', email)
+    else localStorage.removeItem('zity_remember_email')
 
     const { error: signInError } = await signIn(email, password)
 
@@ -73,9 +87,14 @@ export default function Login() {
               value={email}
               onChange={e => setEmail(e.target.value)}
               placeholder="tu@correo.com"
-              className="input-field pl-10"
+              className="input-field has-icon"
               disabled={loading}
             />
+            <span className="field-icon">
+              <svg className="w-[1.15rem] h-[1.15rem]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            </span>
           </div>
         </div>
 
@@ -91,7 +110,30 @@ export default function Login() {
           />
         </div>
 
-        <div className="flex justify-end animate-fade-in delay-3">
+        <div className="flex items-center justify-between gap-3 animate-fade-in delay-3">
+          <label className="group inline-flex items-center gap-2.5 cursor-pointer select-none">
+            <span className="relative flex h-[1.15rem] w-[1.15rem] items-center justify-center">
+              <input
+                type="checkbox"
+                checked={remember}
+                onChange={e => setRemember(e.target.checked)}
+                disabled={loading}
+                className="peer sr-only"
+              />
+              <span className="absolute inset-0 rounded-[0.4rem] border-[1.5px] border-warm-300 bg-white transition-colors duration-200 group-hover:border-warm-400 peer-checked:border-primary-600 peer-checked:bg-primary-600 peer-focus-visible:ring-2 peer-focus-visible:ring-primary-500/40" />
+              <svg
+                className="relative h-3 w-3 text-white opacity-0 transition-opacity duration-200 peer-checked:opacity-100"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={3}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </span>
+            <span className="text-sm text-primary-800">Recordarme</span>
+          </label>
+
           <Link
             to="/forgot-password"
             className="text-sm text-accent-600 hover:text-accent-700 font-medium transition-colors"

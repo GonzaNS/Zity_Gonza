@@ -58,9 +58,14 @@ export default function PasswordInput({
           value={value}
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
-          className={`input-field pr-12 ${hasError ? 'error' : ''}`}
+          className={`input-field has-icon pr-12 ${hasError ? 'error' : ''}`}
           disabled={disabled}
         />
+        <span className="field-icon">
+          <svg className="w-[1.15rem] h-[1.15rem]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+        </span>
         <button
           type="button"
           onClick={() => setShowPassword(!showPassword)}

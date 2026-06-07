@@ -53,12 +53,19 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Curvas de easing fuertes (más intencionales que las nativas) */
+:root {
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
 /* ============================================
    Animations
    ============================================ */
 
 @keyframes fade-in {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
@@ -91,24 +98,38 @@ body {
 }
 
 .animate-fade-in {
-  animation: fade-in 0.5s ease-out both;
+  animation: fade-in 0.55s var(--ease-out-quart) both;
 }
 
 .animate-fade-in-left {
-  animation: fade-in-left 0.4s ease-out both;
+  animation: fade-in-left 0.5s var(--ease-out-expo) both;
 }
 
 .animate-fade-in-right {
-  animation: fade-in-right 0.4s ease-out both;
+  animation: fade-in-right 0.5s var(--ease-out-expo) both;
 }
 
 .animate-scale-in {
-  animation: scale-in 0.3s ease-out both;
+  animation: scale-in 0.32s var(--ease-out-quart) both;
 }
 
 .animate-pulse-once {
   animation: pulse-once 0.6s ease-out 1;
 }
+
+/* Aurora de fondo — deriva lentísima de los orbes de marca (solo transform) */
+@keyframes aurora-a {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to   { transform: translate3d(7%, 5%, 0) scale(1.14); }
+}
+
+@keyframes aurora-b {
+  from { transform: translate3d(0, 0, 0) scale(1.06); }
+  to   { transform: translate3d(-6%, -7%, 0) scale(1); }
+}
+
+.aurora-a { animation: aurora-a 26s var(--ease-in-out-strong) infinite alternate; }
+.aurora-b { animation: aurora-b 34s var(--ease-in-out-strong) infinite alternate; }
 
 /* Stagger delays */
 .delay-1 { animation-delay: 0.05s; }
@@ -123,8 +144,33 @@ body {
    ============================================ */
 
 .auth-panel {
+  /* Halo dorado superior + degradado teal con caída a casi-negro */
   background:
-    linear-gradient(160deg, #1b3a4b 0%, #152e3b 40%, #0c1921 100%);
+    radial-gradient(120% 80% at 22% -10%, rgba(212, 160, 67, 0.16) 0%, transparent 42%),
+    linear-gradient(155deg, #1f4254 0%, #163140 38%, #0b171f 78%, #070f15 100%);
+}
+
+/* Rejilla de planos arquitectónicos, enmascarada para desvanecerse en los bordes */
+.auth-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(129, 177, 195, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(129, 177, 195, 0.07) 1px, transparent 1px);
+  background-size: 56px 56px;
+  -webkit-mask-image: radial-gradient(120% 90% at 30% 25%, #000 0%, transparent 72%);
+  mask-image: radial-gradient(120% 90% at 30% 25%, #000 0%, transparent 72%);
+  pointer-events: none;
+}
+
+/* Viñeta inferior para asentar el footer y dar profundidad */
+.auth-panel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(120% 60% at 50% 120%, rgba(0, 0, 0, 0.45) 0%, transparent 60%);
+  pointer-events: none;
 }
 
 /* ============================================
@@ -133,16 +179,16 @@ body {
 
 .input-field {
   width: 100%;
-  padding: 0.75rem 1rem;
+  padding: 0.8rem 1rem;
   border: 1.5px solid var(--color-warm-300);
-  border-radius: 0.5rem;
+  border-radius: 0.625rem;
   background: white;
   font-family: var(--font-body);
   /* 16px en mobile evita el zoom automático de iOS al enfocar un input.
      En viewports >= sm mantenemos el tamaño compacto original (15px). */
   font-size: 1rem;
   color: #1a1a2e;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: border-color 0.2s var(--ease-out-quart), box-shadow 0.2s var(--ease-out-quart);
   outline: none;
 }
 
@@ -156,9 +202,16 @@ body {
   color: var(--color-warm-400);
 }
 
+.input-field:hover:not(:focus):not(:disabled) {
+  border-color: var(--color-warm-400);
+}
+
 .input-field:focus {
   border-color: var(--color-primary-500);
-  box-shadow: 0 0 0 3px rgba(59, 122, 146, 0.12);
+  /* Doble anillo: teal de foco + insinuación dorada de marca */
+  box-shadow:
+    0 0 0 3px rgba(59, 122, 146, 0.14),
+    0 1px 2px rgba(27, 58, 75, 0.06);
 }
 
 .input-field:disabled {
@@ -171,32 +224,95 @@ body {
   box-shadow: 0 0 0 3px rgba(200, 75, 49, 0.1);
 }
 
+/* Campo con icono a la izquierda */
+.input-field.has-icon {
+  padding-left: 2.75rem;
+}
+
+/* Neutraliza el autofill azul de Chrome y conserva la paleta cálida */
+.input-field:-webkit-autofill,
+.input-field:-webkit-autofill:hover,
+.input-field:-webkit-autofill:focus {
+  -webkit-text-fill-color: #1a1a2e;
+  -webkit-box-shadow: 0 0 0 1000px white inset;
+  caret-color: #1a1a2e;
+  /* Retrasa el repintado del fondo del autofill para evitar el flash amarillo/azul */
+  transition: background-color 600000s 0s, color 600000s 0s;
+}
+
+/* Icono interno del campo (decorativo, no captura clicks) */
+.field-icon {
+  position: absolute;
+  left: 0.9375rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  color: var(--color-warm-400);
+  pointer-events: none;
+  transition: color 0.2s var(--ease-out-quart);
+}
+
+/* El icono va después del input en el DOM para reaccionar al :focus con ~ */
+.input-field:focus ~ .field-icon {
+  color: var(--color-primary-500);
+}
+
+.input-field.error ~ .field-icon {
+  color: var(--color-error);
+}
+
 .btn-primary {
+  position: relative;
+  overflow: hidden;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
   width: 100%;
-  padding: 0.8rem 1.5rem;
-  background: linear-gradient(135deg, var(--color-accent-500) 0%, var(--color-accent-400) 100%);
+  padding: 0.875rem 1.5rem;
+  background: linear-gradient(135deg, var(--color-accent-600) 0%, var(--color-accent-500) 45%, var(--color-accent-400) 100%);
   color: white;
   font-family: var(--font-body);
   font-weight: 600;
   font-size: 0.9375rem;
+  letter-spacing: 0.01em;
   border: none;
-  border-radius: 0.5rem;
+  border-radius: 0.625rem;
   cursor: pointer;
-  transition: transform 0.15s, box-shadow 0.2s, opacity 0.2s;
-  box-shadow: 0 2px 8px rgba(212, 160, 67, 0.25);
+  transition: transform 0.16s var(--ease-out-quart), box-shadow 0.22s var(--ease-out-quart), opacity 0.2s;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.18) inset,
+    0 4px 14px rgba(212, 160, 67, 0.32);
+}
+
+/* Destello que recorre el botón al pasar el cursor */
+.btn-primary::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.28) 50%, transparent 70%);
+  transform: translateX(-120%);
+  transition: transform 0.6s var(--ease-out-expo);
+  pointer-events: none;
 }
 
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(212, 160, 67, 0.35);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.22) inset,
+    0 8px 22px rgba(212, 160, 67, 0.42);
 }
 
+.btn-primary:hover:not(:disabled)::after {
+  transform: translateX(120%);
+}
+
+/* Feedback de pulsado: el botón "escucha" al usuario */
 .btn-primary:active:not(:disabled) {
-  transform: translateY(0);
+  transform: scale(0.985);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.15) inset,
+    0 2px 8px rgba(212, 160, 67, 0.3);
 }
 
 .btn-primary:disabled {
@@ -287,4 +403,44 @@ body {
 
 .step-line.pending {
   background: var(--color-warm-200);
+}
+
+/* ============================================
+   Accesibilidad
+   ============================================ */
+
+/* Anillo de foco visible solo para teclado (no ensucia el click de ratón) */
+.btn-primary:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--color-warm-50),
+    0 0 0 4px var(--color-accent-500),
+    0 8px 22px rgba(212, 160, 67, 0.42);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .btn-primary::after {
+    display: none;
+  }
+
+  .animate-fade-in,
+  .animate-fade-in-left,
+  .animate-fade-in-right,
+  .animate-scale-in {
+    /* Conserva la aparición (opacidad) pero elimina el desplazamiento */
+    animation: fade-opacity 0.2s ease both;
+  }
+}
+
+@keyframes fade-opacity {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
