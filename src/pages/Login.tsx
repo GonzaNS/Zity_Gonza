@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import AuthLayout from '../components/AuthLayout'
@@ -8,20 +8,13 @@ export default function Login() {
   const location = useLocation()
   const { signIn, user, profile } = useAuth()
 
-  const [email, setEmail] = useState('')
+  // "Recordarme": precarga el correo guardado en visitas anteriores (sin tocar
+  // la sesión). Initializer lazy: se lee localStorage una sola vez al montar.
+  const [email, setEmail] = useState(() => localStorage.getItem('zity_remember_email') ?? '')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const [remember, setRemember] = useState(false)
-
-  // "Recordarme": precarga el correo guardado en visitas anteriores (sin tocar la sesión).
-  useEffect(() => {
-    const savedEmail = localStorage.getItem('zity_remember_email')
-    if (savedEmail) {
-      setEmail(savedEmail)
-      setRemember(true)
-    }
-  }, [])
+  const [remember, setRemember] = useState(() => !!localStorage.getItem('zity_remember_email'))
 
   const successMessage = (location.state as { message?: string })?.message
 

@@ -16,6 +16,7 @@ import { supabase } from '../../lib/supabase'
 import {
   useFacturasResidente,
   type FiltroFactura,
+  type FiltroTipoFactura,
 } from '../../hooks/useFacturasResidente'
 import {
   LABEL_FACTURA_TIPO,
@@ -78,6 +79,13 @@ const FILTROS: { valor: FiltroFactura; label: string }[] = [
   { valor: 'vencida',   label: 'Vencidas' },
 ]
 
+// Sprint 12 (feedback) — filtro por tipo, incluye 'tienda' (cierre de pedidos).
+const FILTROS_TIPO: { valor: FiltroTipoFactura; label: string }[] = [
+  { valor: 'todas', label: 'Todos los tipos' },
+  ...(Object.entries(LABEL_FACTURA_TIPO) as [FacturaTipo, string][])
+    .map(([valor, label]) => ({ valor: valor as FiltroTipoFactura, label })),
+]
+
 // ─── Componente principal ────────────────────────────────────────────────────
 
 export default function ResidenteFacturas() {
@@ -85,6 +93,7 @@ export default function ResidenteFacturas() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const [filtro, setFiltro] = useState<FiltroFactura>('todas')
+  const [filtroTipo, setFiltroTipo] = useState<FiltroTipoFactura>('todas')
   const [seleccionada, setSeleccionada] = useState<Factura | null>(null)
   const [descargando, setDescargando] = useState(false)
   const [errorDescarga, setErrorDescarga] = useState<string | null>(null)
@@ -94,7 +103,7 @@ export default function ResidenteFacturas() {
 
   const {
     facturas, loading, loadingMore, error, hayMas, cargarMas, totalPendiente, recargar,
-  } = useFacturasResidente(filtro)
+  } = useFacturasResidente(filtro, filtroTipo)
 
   // Tras un pago exitoso: cierra el modal, vuelve a la lista, avisa y recarga.
   function handlePagado(mensaje: string) {
@@ -241,7 +250,7 @@ export default function ResidenteFacturas() {
         </div>
 
         {/* Filtros */}
-        <div className="flex gap-1.5 flex-wrap mb-6 animate-fade-in delay-1">
+        <div className="flex items-center gap-1.5 flex-wrap mb-6 animate-fade-in delay-1">
           {FILTROS.map(f => (
             <button
               key={f.valor}
@@ -256,6 +265,20 @@ export default function ResidenteFacturas() {
               {f.label}
             </button>
           ))}
+
+          <span className="mx-1 h-5 w-px bg-warm-200 hidden sm:inline-block" aria-hidden="true" />
+
+          {/* Sprint 12 (feedback) — filtro por tipo (incluye Tienda) */}
+          <select
+            value={filtroTipo}
+            onChange={e => { setFiltroTipo(e.target.value as FiltroTipoFactura); setSeleccionada(null) }}
+            aria-label="Filtrar por tipo de factura"
+            className="h-9 px-3 rounded-full text-sm font-medium text-primary-700 bg-white border border-warm-200 focus:outline-none focus:ring-2 focus:ring-primary-400 cursor-pointer"
+          >
+            {FILTROS_TIPO.map(t => (
+              <option key={t.valor} value={t.valor}>{t.label}</option>
+            ))}
+          </select>
         </div>
 
         {/* Error */}
@@ -271,7 +294,7 @@ export default function ResidenteFacturas() {
             <div className="w-8 h-8 border-2 border-primary-200 border-t-primary-600 rounded-full animate-spin" />
           </div>
         ) : facturas.length === 0 ? (
-          <EmptyState filtro={filtro} />
+          <EmptyState filtro={filtro} filtroTipo={filtroTipo} />
         ) : (
           <>
             {/* Grid de tarjetas */}
@@ -562,7 +585,8 @@ function DetalleFactura({
 
 // ─── Empty state ─────────────────────────────────────────────────────────────
 
-function EmptyState({ filtro }: { filtro: FiltroFactura }) {
+function EmptyState({ filtro, filtroTipo }: { filtro: FiltroFactura; filtroTipo: FiltroTipoFactura }) {
+  const sinFiltros = filtro === 'todas' && filtroTipo === 'todas'
   return (
     <div className="bg-white border border-warm-200 rounded-xl p-10 sm:p-14 text-center animate-fade-in">
       <div className="w-16 h-16 rounded-full bg-warm-100 flex items-center justify-center mx-auto mb-4">
@@ -572,9 +596,11 @@ function EmptyState({ filtro }: { filtro: FiltroFactura }) {
       </div>
       <p className="font-medium text-primary-900">No hay facturas</p>
       <p className="text-sm text-warm-400 mt-1">
-        {filtro === 'todas'
+        {sinFiltros
           ? 'Aún no se han emitido facturas para tu cuenta.'
-          : `No tienes facturas con estado "${LABEL_FACTURA_ESTADO[filtro as Exclude<FiltroFactura, 'todas'>]}".`}
+          : filtroTipo !== 'todas'
+            ? `No tienes facturas de ${LABEL_FACTURA_TIPO[filtroTipo as FacturaTipo]} con esos filtros.`
+            : `No tienes facturas con estado "${LABEL_FACTURA_ESTADO[filtro as Exclude<FiltroFactura, 'todas'>]}".`}
       </p>
     </div>
   )

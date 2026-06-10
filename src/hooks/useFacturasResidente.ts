@@ -2,15 +2,19 @@
 //
 // Paginación lazy (scroll infinito): carga de PAGE_SIZE en PAGE_SIZE.
 // La RLS de Supabase garantiza que solo se devuelvan facturas del usuario actual.
-// Se ordena por vencimiento ASC (más urgentes primero) y luego por created_at DESC.
+// Se ordena por vencimiento DESC (las del periodo más reciente primero): con
+// varios años de historial, el orden ASC enterraba las facturas recién emitidas
+// (p. ej. la de tienda del cierre de pedidos) al final del scroll infinito.
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
-import type { Factura, FacturaEstado } from '../lib/facturas'
+import type { Factura, FacturaEstado, FacturaTipo } from '../lib/facturas'
 
 export const PAGE_SIZE = 25
 
 export type FiltroFactura = FacturaEstado | 'todas'
+/** Sprint 12 (feedback) — filtro por tipo de factura (luz/agua/pension/multa/tienda). */
+export type FiltroTipoFactura = FacturaTipo | 'todas'
 
 export type UseFacturasResidenteResult = {
   facturas: Factura[]
@@ -24,7 +28,10 @@ export type UseFacturasResidenteResult = {
   recargar: () => void
 }
 
-export function useFacturasResidente(filtro: FiltroFactura): UseFacturasResidenteResult {
+export function useFacturasResidente(
+  filtro: FiltroFactura,
+  filtroTipo: FiltroTipoFactura = 'todas',
+): UseFacturasResidenteResult {
   const [facturas, setFacturas] = useState<Factura[]>([])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -50,13 +57,16 @@ export function useFacturasResidente(filtro: FiltroFactura): UseFacturasResident
     let query = supabase
       .from('facturas')
       .select('*')
-      .order('vencimiento', { ascending: true })
+      .order('vencimiento', { ascending: false })
       .order('created_at', { ascending: false })
       .range(0, PAGE_SIZE - 1)
       .abortSignal(controller.signal)
 
     if (filtro !== 'todas') {
       query = query.eq('estado', filtro)
+    }
+    if (filtroTipo !== 'todas') {
+      query = query.eq('tipo', filtroTipo)
     }
 
     const [{ data, error: fetchErr }, { data: totalesData }] = await Promise.all([
@@ -97,7 +107,7 @@ export function useFacturasResidente(filtro: FiltroFactura): UseFacturasResident
     setTotalPendiente(total)
 
     setLoading(false)
-  }, [filtro])
+  }, [filtro, filtroTipo])
 
   useEffect(() => {
     // cargarPrimera hace setLoading(true)/setError(null) de forma síncrona al
@@ -120,12 +130,15 @@ export function useFacturasResidente(filtro: FiltroFactura): UseFacturasResident
     let query = supabase
       .from('facturas')
       .select('*')
-      .order('vencimiento', { ascending: true })
+      .order('vencimiento', { ascending: false })
       .order('created_at', { ascending: false })
       .range(desde, hasta)
 
     if (filtro !== 'todas') {
       query = query.eq('estado', filtro)
+    }
+    if (filtroTipo !== 'todas') {
+      query = query.eq('tipo', filtroTipo)
     }
 
     const { data, error: fetchErr } = await query
@@ -141,7 +154,7 @@ export function useFacturasResidente(filtro: FiltroFactura): UseFacturasResident
     setHayMas(nuevas.length === PAGE_SIZE)
     offsetRef.current += nuevas.length
     setLoadingMore(false)
-  }, [filtro, loadingMore, hayMas])
+  }, [filtro, filtroTipo, loadingMore, hayMas])
 
   return { facturas, loading, loadingMore, error, hayMas, cargarMas, totalPendiente, recargar: cargarPrimera }
 }

@@ -77,7 +77,7 @@ export default function ResidenteTienda() {
             <MiniCarrito />
             <Link
               to="/residente/tienda/historial"
-              className="text-sm text-primary-700 hover:text-primary-900 font-medium hidden sm:inline"
+              className="text-sm text-primary-700 hover:text-primary-900 font-medium whitespace-nowrap"
             >
               Mis pedidos
             </Link>
@@ -86,13 +86,26 @@ export default function ResidenteTienda() {
       />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
-        <div className="animate-fade-in">
-          <h2 className="font-display text-2xl sm:text-3xl font-semibold text-primary-900 tracking-tight">
-            Tienda del edificio
-          </h2>
-          <p className="mt-1 text-warm-400 text-sm">
-            Explora el catálogo, arma tu carrito y confirma tu pedido.
-          </p>
+        <div className="animate-fade-in flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+          <div className="min-w-0">
+            <h2 className="font-display text-2xl sm:text-3xl font-semibold text-primary-900 tracking-tight">
+              Tienda del edificio
+            </h2>
+            <p className="mt-1 text-warm-400 text-sm">
+              Explora el catálogo, arma tu carrito y confirma tu pedido.
+            </p>
+          </div>
+
+          {/* Sprint 12 (feedback) — acceso visible al historial de pedidos (HU-TIENDA-07) */}
+          <Link
+            to="/residente/tienda/historial"
+            className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-primary-700 bg-white border border-warm-200 rounded-lg hover:border-primary-300 hover:bg-primary-50 transition-colors shadow-sm shrink-0 w-fit"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Mis pedidos
+          </Link>
         </div>
 
         {/* Filtros + búsqueda */}

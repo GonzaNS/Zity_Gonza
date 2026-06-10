@@ -8,11 +8,12 @@
 //   • Emitir nueva: formulario individual / lote (Sprint 8).
 
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import AdminShell from '../../components/admin/AdminShell'
 import { supabase } from '../../lib/supabase'
 import { useResidentesActivos } from '../../hooks/useResidentesActivos'
 import { useFacturasAdmin, type FacturaAdmin } from '../../hooks/useFacturasAdmin'
-import type { FiltroFactura } from '../../hooks/useFacturasResidente'
+import type { FiltroFactura, FiltroTipoFactura } from '../../hooks/useFacturasResidente'
 import TarjetaTotales from '../../components/admin/facturacion/TarjetaTotales'
 import TablaFacturasAdmin from '../../components/admin/facturacion/TablaFacturasAdmin'
 import DrawerFacturaAdmin from '../../components/admin/facturacion/DrawerFacturaAdmin'
@@ -73,6 +74,14 @@ const FILTROS: { valor: FiltroFactura; label: string }[] = [
   { valor: 'vencida',   label: 'Vencidas' },
 ]
 
+// Sprint 12 (feedback) — filtro por tipo en el listado (incluye 'tienda', que
+// se genera con el cierre de pedidos y antes era difícil de localizar).
+const FILTROS_TIPO: { valor: FiltroTipoFactura; label: string }[] = [
+  { valor: 'todas', label: 'Todos los tipos' },
+  ...(Object.entries(LABEL_FACTURA_TIPO) as [FacturaTipo, string][])
+    .map(([valor, label]) => ({ valor: valor as FiltroTipoFactura, label })),
+]
+
 // ─── Componente principal (tabs) ──────────────────────────────────────────────
 
 export default function AdminFacturacion() {
@@ -107,11 +116,12 @@ export default function AdminFacturacion() {
 
 function PanelListado() {
   const [filtro, setFiltro] = useState<FiltroFactura>('todas')
+  const [filtroTipo, setFiltroTipo] = useState<FiltroTipoFactura>('todas')
   const [periodo, setPeriodo] = useState<string>(periodoActual())
   const [seleccionada, setSeleccionada] = useState<FacturaAdmin | null>(null)
   const [toast, setToast] = useState<Toast>(null)
 
-  const { facturas, totales, loading, error, recargar } = useFacturasAdmin(filtro, periodo)
+  const { facturas, totales, loading, error, recargar } = useFacturasAdmin(filtro, periodo, filtroTipo)
 
   function mostrarToast(tipo: 'success' | 'error', msg: string) {
     setToast({ tipo, msg })
@@ -129,8 +139,8 @@ function PanelListado() {
     <>
       <TarjetaTotales totales={totales} periodo={periodo} onPeriodoChange={setPeriodo} loading={loading} />
 
-      {/* Filtros por estado */}
-      <div className="flex gap-1.5 flex-wrap mb-5 animate-fade-in">
+      {/* Filtros por estado + tipo */}
+      <div className="flex items-center gap-1.5 flex-wrap mb-5 animate-fade-in">
         {FILTROS.map(f => (
           <button
             key={f.valor}
@@ -145,6 +155,19 @@ function PanelListado() {
             {f.label}
           </button>
         ))}
+
+        <span className="mx-1 h-5 w-px bg-warm-200 hidden sm:inline-block" aria-hidden="true" />
+
+        <select
+          value={filtroTipo}
+          onChange={e => setFiltroTipo(e.target.value as FiltroTipoFactura)}
+          aria-label="Filtrar por tipo de factura"
+          className="h-9 px-3 rounded-full text-sm font-medium text-primary-700 bg-white border border-warm-200 focus:outline-none focus:ring-2 focus:ring-primary-400 cursor-pointer"
+        >
+          {FILTROS_TIPO.map(t => (
+            <option key={t.valor} value={t.valor}>{t.label}</option>
+          ))}
+        </select>
       </div>
 
       {error && (
@@ -352,6 +375,13 @@ function PanelEmision() {
                   <option key={val} value={val}>{label}</option>
                 ))}
               </select>
+              <p className="mt-1 text-xs text-warm-400">
+                Las facturas de <strong>Tienda</strong> no se emiten a mano: se generan
+                automáticamente al cerrar el periodo en{' '}
+                <Link to="/admin/pedidos" className="text-primary-600 hover:text-primary-800 font-medium underline">
+                  Pedidos
+                </Link>.
+              </p>
             </Campo>
 
             <Campo label="Monto ($)" error={erroresForm.monto}>

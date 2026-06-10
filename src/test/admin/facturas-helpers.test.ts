@@ -83,11 +83,12 @@ describe('estaVencida', () => {
 })
 
 describe('LABEL_FACTURA_TIPO', () => {
-  it('cubre los 4 tipos del enum factura_tipo', () => {
+  it('cubre los 5 tipos del enum factura_tipo (tienda desde Sprint 11)', () => {
     expect(LABEL_FACTURA_TIPO.luz).toBe('Electricidad')
     expect(LABEL_FACTURA_TIPO.agua).toBe('Agua')
     expect(LABEL_FACTURA_TIPO.pension).toBe('Pensión')
     expect(LABEL_FACTURA_TIPO.multa).toBe('Multa')
+    expect(LABEL_FACTURA_TIPO.tienda).toBe('Tienda')
   })
 })
 

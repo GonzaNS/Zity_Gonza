@@ -7,7 +7,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { obtenerTotalesPeriodo, type Factura, type TotalesPeriodo } from '../lib/facturas'
-import type { FiltroFactura } from './useFacturasResidente'
+import type { FiltroFactura, FiltroTipoFactura } from './useFacturasResidente'
 
 /** Factura con los datos mínimos del residente embebidos (para la tabla admin). */
 export type FacturaAdmin = Factura & {
@@ -30,7 +30,11 @@ export type UseFacturasAdminResult = {
   recargar: () => void
 }
 
-export function useFacturasAdmin(filtro: FiltroFactura, periodo: string): UseFacturasAdminResult {
+export function useFacturasAdmin(
+  filtro: FiltroFactura,
+  periodo: string,
+  filtroTipo: FiltroTipoFactura = 'todas',
+): UseFacturasAdminResult {
   const [facturas, setFacturas] = useState<FacturaAdmin[]>([])
   const [totales, setTotales] = useState<TotalesPeriodo | null>(null)
   const [loading, setLoading] = useState(true)
@@ -43,17 +47,22 @@ export function useFacturasAdmin(filtro: FiltroFactura, periodo: string): UseFac
     // Dos FKs facturas→usuarios (residente_id y registrado_por): se desambigua
     // el embed por la COLUMNA (residente_id) — más robusto que el nombre del
     // constraint (que difiere entre la migración y la BD real).
+    // Orden DESC: con LIMIT y varios años de historial, el orden ASC dejaba las
+    // facturas recién emitidas (p. ej. tienda) fuera de las primeras N filas.
     let query = supabase
       .from('facturas')
       .select(
         '*, residente:usuarios!residente_id(nombre, apellido, departamento, piso)',
       )
-      .order('vencimiento', { ascending: true })
+      .order('vencimiento', { ascending: false })
       .order('created_at', { ascending: false })
       .limit(ADMIN_FACTURAS_LIMIT)
 
     if (filtro !== 'todas') {
       query = query.eq('estado', filtro)
+    }
+    if (filtroTipo !== 'todas') {
+      query = query.eq('tipo', filtroTipo)
     }
 
     const [{ data, error: fetchErr }, totalesPeriodo] = await Promise.all([
@@ -73,7 +82,7 @@ export function useFacturasAdmin(filtro: FiltroFactura, periodo: string): UseFac
 
     setFacturas((data ?? []) as unknown as FacturaAdmin[])
     setLoading(false)
-  }, [filtro, periodo])
+  }, [filtro, periodo, filtroTipo])
 
   useEffect(() => {
     // cargar() hace setState síncrono de reset; es el patrón del proyecto
