@@ -14,15 +14,17 @@ const NOMBRE_MAX = 80
 const TELEFONO_MAX = 20
 
 const ROL_LABEL: Record<Rol, string> = {
-  residente: 'Residente',
-  tecnico: 'Técnico',
-  admin: 'Administrador',
+  residente:  'Residente',
+  tecnico:    'Técnico',
+  admin:      'Administrador',
+  observador: 'Observador',   // Sprint 14 · HU-EJEC-01
 }
 
 const ROL_BADGE_CLS: Record<Rol, string> = {
-  residente: 'bg-accent-500',
-  tecnico: 'bg-success',
-  admin: 'bg-primary-600',
+  residente:  'bg-accent-500',
+  tecnico:    'bg-success',
+  admin:      'bg-primary-600',
+  observador: 'bg-amber-500',  // Sprint 14 · HU-EJEC-01
 }
 
 export default function Perfil() {

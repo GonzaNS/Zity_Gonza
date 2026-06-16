@@ -70,7 +70,12 @@ function etiquetaAutor(
 
   if (rolObservador === 'admin') {
     // Admin ve nombre completo
-    const rolLabel: Record<Rol, string> = { admin: 'Admin', tecnico: 'Técnico', residente: 'Residente' }
+    const rolLabel: Record<Rol, string> = {
+      admin:      'Admin',
+      tecnico:    'Técnico',
+      residente:  'Residente',
+      observador: 'Observador', // Sprint 14 · HU-EJEC-01
+    }
     return `${rolLabel[autor.rol]} ${autor.nombre} ${autor.apellido}`
   }
 

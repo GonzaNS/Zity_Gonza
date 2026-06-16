@@ -1,4 +1,4 @@
-export type Rol = 'residente' | 'admin' | 'tecnico'
+export type Rol = 'residente' | 'admin' | 'tecnico' | 'observador'
 export type EstadoCuenta = 'pendiente' | 'activo' | 'bloqueado'
 export type EstadoInvitacion = 'pendiente' | 'aceptada' | 'expirada'
 export type EstadoSolicitud = 'pendiente' | 'asignada' | 'en_progreso' | 'resuelta' | 'cerrada'

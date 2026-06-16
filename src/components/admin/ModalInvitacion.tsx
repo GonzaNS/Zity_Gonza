@@ -3,7 +3,6 @@ import { useInvitacion } from '../../hooks/useInvitacion'
 import { useModalBehavior } from '../../hooks/useModalBehavior'
 import { useFocusTrap } from '../../hooks/useFocusTrap'
 import { EMAIL_REGEX } from '../../lib/validators'
-import type { Rol } from '../../types/database'
 
 type Errores = Partial<Record<'email' | 'nombre' | 'rol', string>>
 
@@ -18,7 +17,9 @@ export default function ModalInvitacion({ onEnviado, onCerrar }: Props) {
   const [form, setForm] = useState({
     email: '',
     nombre: '',
-    rol: 'residente' as Rol,
+    // Sprint 14 · HU-EJEC-01 — 'observador' no puede invitarse desde este formulario.
+    // El admin lo asigna directamente en Supabase. Usamos un subtipo explícito.
+    rol: 'residente' as 'residente' | 'tecnico' | 'admin',
     piso: '',
     departamento: '',
     empresa_tercero: '',

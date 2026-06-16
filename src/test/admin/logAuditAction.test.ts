@@ -104,8 +104,11 @@ describe('logAuditAction', () => {
     if (!out.ok) expect(out.error).toBe('policy violation')
   })
 
-  it('expone catálogo de acciones con las 7 acciones del frontend', () => {
-    expect(ACCIONES_AUDIT).toHaveLength(7)
+  it('expone catálogo de acciones con las 11 acciones del frontend', () => {
+    // Sprint 5: 7 acciones originales
+    // Sprint 13 · PBI-S6-E03: + cerrar_sesiones
+    // Sprint 13 · HU-PAGO-02: + alta_metodo_pago, predeterminada_metodo_pago, eliminar_metodo_pago
+    expect(ACCIONES_AUDIT).toHaveLength(11)
     expect(ACCIONES_AUDIT).toContain('asignar_solicitud')
     expect(ACCIONES_AUDIT).toContain('actualizar_estado_solicitud')
     expect(ACCIONES_AUDIT).toContain('confirmar_solicitud')
