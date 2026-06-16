@@ -12,7 +12,9 @@ import ObservadorShell from '../../components/observador/ObservadorShell'
 import { useMetricasMantenimiento } from '../../hooks/useMetricasMantenimiento'
 import { useGraficasMantenimiento } from '../../hooks/useGraficasMantenimiento'
 import { useMetricasFinanzas } from '../../hooks/useMetricasFinanzas'
+import { useMetricasTienda } from '../../hooks/useMetricasTienda'
 import { formatearHoras } from '../../lib/metricas'
+import { formatearMoneda } from '../../lib/metricasFinanzas'
 import { ErrorBoundary } from '../../components/shared/ErrorBoundary'
 
 // Reutilizar las gráficas de Recharts — mismo chunk que /admin/metricas.
@@ -24,6 +26,9 @@ const GraficaTopCategorias    = lazy(() => import('../../components/admin/Grafic
 
 const GraficaIngresosTipo  = lazy(() => import('../../components/admin/GraficasFinanzas').then(m => ({ default: m.GraficaIngresosTipo })))
 const TarjetaRatioCobranza = lazy(() => import('../../components/admin/GraficasFinanzas').then(m => ({ default: m.TarjetaRatioCobranza })))
+
+const GraficaTendenciaTienda = lazy(() => import('../../components/admin/GraficasTienda').then(m => ({ default: m.GraficaTendenciaTienda })))
+const GraficaTopProductos    = lazy(() => import('../../components/admin/GraficasTienda').then(m => ({ default: m.GraficaTopProductos })))
 
 // ─── Skeleton de gráfica ─────────────────────────────────────────────────────
 function SkeletonGrafica({ height = 280 }: { height?: number }) {
@@ -145,13 +150,21 @@ export default function Ejecutivo() {
     refrescar: refrescarFinanzas,
   } = useMetricasFinanzas()
 
-  const cargando = loading || loadingGraficas || loadingFinanzas
+  const {
+    metricas: metricasTienda,
+    loading: loadingTienda,
+    error: errTienda,
+    refrescar: refrescarTienda,
+  } = useMetricasTienda()
+
+  const cargando = loading || loadingGraficas || loadingFinanzas || loadingTienda
 
   const refrescarTodo = useCallback(() => {
     void refrescarMetricas()
     void refrescarGraficas()
     void refrescarFinanzas()
-  }, [refrescarMetricas, refrescarGraficas, refrescarFinanzas])
+    void refrescarTienda()
+  }, [refrescarMetricas, refrescarGraficas, refrescarFinanzas, refrescarTienda])
 
   const t = metricas?.tiempos_resolucion
 
@@ -325,7 +338,6 @@ export default function Ejecutivo() {
             </ErrorBoundary>
           </div>
         </div>
-        </div>
       </section>
 
       {/* ── Sección Finanzas ─────────────────────────────────────────── */}
@@ -371,6 +383,77 @@ export default function Ejecutivo() {
               </Suspense>
             </ErrorBoundary>
           </div>
+        </div>
+      </section>
+
+      {/* ── Sección Tienda ────────────────────────────────────────────── */}
+      <section aria-labelledby="seccion-tienda" className="space-y-6 mt-10">
+        <div className="flex items-center gap-2 pb-2 border-b border-warm-200">
+          <svg className="w-6 h-6 text-primary-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+          </svg>
+          <h2 id="seccion-tienda" className="text-lg font-semibold text-primary-900">
+            Aporte de la Tienda Interna
+          </h2>
+        </div>
+
+        {errTienda && (
+          <div role="alert" className="p-4 rounded-xl bg-error/10 border border-error/20 text-error text-sm animate-fade-in">
+            <p><strong>Error en tienda:</strong> {errTienda}</p>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          {/* Tarjeta KPI */}
+          <div className="lg:col-span-1">
+            {loadingTienda && !metricasTienda ? (
+              <SkeletonKpi />
+            ) : (
+              <TarjetaKpi
+                icono={
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                }
+                titulo="Ingresos del mes"
+                valor={formatearMoneda(metricasTienda?.ingresos_mes ?? 0)}
+                subtitulo={`Periodo: ${metricasTienda?.periodo ?? '-'}`}
+                variante="green"
+                badge="Ventas confirmadas"
+                delay="delay-1"
+              />
+            )}
+          </div>
+
+          {/* Top 5 productos */}
+          <div className="bg-white border border-warm-200 rounded-xl p-5 sm:p-6 lg:col-span-2 animate-fade-in delay-2">
+            <ErrorBoundary title="Top Productos" externalError={errTienda} onReset={refrescarTienda}>
+              <Suspense fallback={
+                <div className="space-y-4">
+                  {[1, 2, 3, 4, 5].map(i => (
+                    <div key={i} className="animate-pulse">
+                      <div className="flex justify-between mb-1">
+                        <div className="w-24 h-3 bg-warm-100 rounded" />
+                        <div className="w-10 h-3 bg-warm-100 rounded" />
+                      </div>
+                      <div className="h-2 bg-warm-100 rounded-full" />
+                    </div>
+                  ))}
+                </div>
+              }>
+                <GraficaTopProductos datos={metricasTienda?.top_productos ?? []} loading={loadingTienda} />
+              </Suspense>
+            </ErrorBoundary>
+          </div>
+        </div>
+
+        {/* Tendencia mensual */}
+        <div className="bg-white border border-warm-200 rounded-xl p-5 sm:p-6 animate-fade-in delay-3">
+          <ErrorBoundary title="Tendencia de ventas" externalError={errTienda} onReset={refrescarTienda}>
+            <Suspense fallback={<SkeletonGrafica height={240} />}>
+              <GraficaTendenciaTienda datos={metricasTienda?.tendencia ?? []} loading={loadingTienda} />
+            </Suspense>
+          </ErrorBoundary>
         </div>
       </section>
 

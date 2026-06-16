@@ -324,4 +324,35 @@ describe('HU-EJEC-01 · Rol observador', () => {
     })
   })
 
+  // ── T12 — RPCs de tienda para el observador ──────────────────────────────
+  describe('T12 — Acceso a RPCs de tienda por observador', () => {
+    it('get_metricas_tienda es ejecutable y retorna ingresos_mes, top_productos y tendencia', async () => {
+      mockRpc.mockResolvedValue({
+        data: {
+          periodo: '2026-06',
+          ingresos_mes: 2450.50,
+          top_productos: [
+            { name: 'Coca Cola 1L', cantidad: 45, value: 225.00 },
+            { name: 'Detergente Opal', cantidad: 30, value: 450.00 }
+          ],
+          tendencia: [
+            { mes: '2026-04', total_ventas: 1800.00, total_pedidos: 35 },
+            { mes: '2026-05', total_ventas: 2100.00, total_pedidos: 40 },
+            { mes: '2026-06', total_ventas: 2450.50, total_pedidos: 48 }
+          ]
+        },
+        error: null,
+      })
+
+      const { supabase } = await import('../../lib/supabase')
+      const result = await supabase.rpc('get_metricas_tienda', { p_periodo: '2026-06' })
+
+      expect(result.error).toBeNull()
+      expect(result.data).toHaveProperty('ingresos_mes', 2450.50)
+      expect(result.data.top_productos[0]).toHaveProperty('name', 'Coca Cola 1L')
+      expect(result.data.tendencia.length).toBe(3)
+      expect(mockRpc).toHaveBeenCalledWith('get_metricas_tienda', { p_periodo: '2026-06' })
+    })
+  })
+
 })
