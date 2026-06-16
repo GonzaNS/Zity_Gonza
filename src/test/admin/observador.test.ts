@@ -297,4 +297,31 @@ describe('HU-EJEC-01 · Rol observador', () => {
     })
   })
 
+  // ── T11 — RPCs de finanzas para el observador ──────────────────────────────
+  describe('T11 — Acceso a RPCs de finanzas por observador', () => {
+    it('get_metricas_finanzas es ejecutable y retorna ratio e ingresos por tipo', async () => {
+      mockRpc.mockResolvedValue({
+        data: {
+          periodo: '2026-06',
+          ratio: { cobrado: 15000, pendiente: 3500 },
+          ingresos_por_tipo: [
+            { name: 'luz', value: 8000 },
+            { name: 'agua', value: 4000 },
+            { name: 'pension', value: 3000 }
+          ]
+        },
+        error: null,
+      })
+
+      const { supabase } = await import('../../lib/supabase')
+      const result = await supabase.rpc('get_metricas_finanzas', { p_periodo: '2026-06' })
+
+      expect(result.error).toBeNull()
+      expect(result.data).toHaveProperty('ratio')
+      expect(result.data.ratio.cobrado).toBe(15000)
+      expect(result.data.ingresos_por_tipo.length).toBe(3)
+      expect(mockRpc).toHaveBeenCalledWith('get_metricas_finanzas', { p_periodo: '2026-06' })
+    })
+  })
+
 })

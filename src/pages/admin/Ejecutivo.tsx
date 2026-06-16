@@ -11,6 +11,7 @@ import { lazy, Suspense, useCallback } from 'react'
 import ObservadorShell from '../../components/observador/ObservadorShell'
 import { useMetricasMantenimiento } from '../../hooks/useMetricasMantenimiento'
 import { useGraficasMantenimiento } from '../../hooks/useGraficasMantenimiento'
+import { useMetricasFinanzas } from '../../hooks/useMetricasFinanzas'
 import { formatearHoras } from '../../lib/metricas'
 import { ErrorBoundary } from '../../components/shared/ErrorBoundary'
 
@@ -20,6 +21,9 @@ import { ErrorBoundary } from '../../components/shared/ErrorBoundary'
 const GraficaVolumenResueltas = lazy(() => import('../../components/admin/GraficasMetricas').then(m => ({ default: m.GraficaVolumenResueltas })))
 const GraficaTendencia        = lazy(() => import('../../components/admin/GraficasMetricas').then(m => ({ default: m.GraficaTendencia })))
 const GraficaTopCategorias    = lazy(() => import('../../components/admin/GraficasMetricas').then(m => ({ default: m.GraficaTopCategorias })))
+
+const GraficaIngresosTipo  = lazy(() => import('../../components/admin/GraficasFinanzas').then(m => ({ default: m.GraficaIngresosTipo })))
+const TarjetaRatioCobranza = lazy(() => import('../../components/admin/GraficasFinanzas').then(m => ({ default: m.TarjetaRatioCobranza })))
 
 // ─── Skeleton de gráfica ─────────────────────────────────────────────────────
 function SkeletonGrafica({ height = 280 }: { height?: number }) {
@@ -134,12 +138,20 @@ export default function Ejecutivo() {
     refrescar: refrescarGraficas,
   } = useGraficasMantenimiento()
 
-  const cargando = loading || loadingGraficas
+  const {
+    metricas: metricasFinanzas,
+    loading: loadingFinanzas,
+    error: errFinanzas,
+    refrescar: refrescarFinanzas,
+  } = useMetricasFinanzas()
+
+  const cargando = loading || loadingGraficas || loadingFinanzas
 
   const refrescarTodo = useCallback(() => {
     void refrescarMetricas()
     void refrescarGraficas()
-  }, [refrescarMetricas, refrescarGraficas])
+    void refrescarFinanzas()
+  }, [refrescarMetricas, refrescarGraficas, refrescarFinanzas])
 
   const t = metricas?.tiempos_resolucion
 
@@ -309,6 +321,53 @@ export default function Ejecutivo() {
             <ErrorBoundary title="Tendencia de los tiempos promedio de resolución" externalError={errGraficas} onReset={refrescarGraficas}>
               <Suspense fallback={<SkeletonGrafica height={260} />}>
                 <GraficaTendencia datos={graficas?.tendencia_mensual ?? []} loading={loadingGraficas} />
+              </Suspense>
+            </ErrorBoundary>
+          </div>
+        </div>
+        </div>
+      </section>
+
+      {/* ── Sección Finanzas ─────────────────────────────────────────── */}
+      <section aria-labelledby="seccion-finanzas" className="space-y-6 mt-10">
+        <div className="flex items-center gap-2 pb-2 border-b border-warm-200">
+          <svg className="w-6 h-6 text-primary-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <h2 id="seccion-finanzas" className="text-lg font-semibold text-primary-900">
+            Salud Financiera
+          </h2>
+        </div>
+
+        {errFinanzas && (
+          <div role="alert" className="p-4 rounded-xl bg-error/10 border border-error/20 text-error text-sm animate-fade-in">
+            <p><strong>Error en finanzas:</strong> {errFinanzas}</p>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div className="bg-white border border-warm-200 rounded-xl p-5 sm:p-6 animate-fade-in delay-1">
+            <h3 className="text-base font-semibold text-primary-900 mb-4">
+              Ratio de Cobranza del Periodo
+            </h3>
+            <ErrorBoundary title="Ratio de Cobranza" externalError={errFinanzas} onReset={refrescarFinanzas}>
+              <Suspense fallback={<SkeletonGrafica height={180} />}>
+                {metricasFinanzas?.ratio ? (
+                  <TarjetaRatioCobranza ratio={metricasFinanzas.ratio} loading={loadingFinanzas} />
+                ) : (
+                  <div className="h-[180px] flex items-center justify-center text-sm text-warm-400 italic">No hay datos</div>
+                )}
+              </Suspense>
+            </ErrorBoundary>
+          </div>
+
+          <div className="bg-white border border-warm-200 rounded-xl p-5 sm:p-6 animate-fade-in delay-2">
+            <h3 className="text-base font-semibold text-primary-900 mb-4">
+              Ingresos por Tipo (Cobrados)
+            </h3>
+            <ErrorBoundary title="Ingresos por Tipo" externalError={errFinanzas} onReset={refrescarFinanzas}>
+              <Suspense fallback={<SkeletonGrafica height={220} />}>
+                <GraficaIngresosTipo datos={metricasFinanzas?.ingresos_por_tipo ?? []} loading={loadingFinanzas} />
               </Suspense>
             </ErrorBoundary>
           </div>
