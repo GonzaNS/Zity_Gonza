@@ -7,6 +7,7 @@ import zityLogo from '../assets/zity_logo.png'
 import PasswordInput from '../components/PasswordInput'
 import { logAuditAction } from '../lib/audit'
 import type { Rol } from '../types/database'
+import MisTarjetas from '../components/residente/MisTarjetas'
 
 const NOMBRE_MIN = 2
 const NOMBRE_MAX = 80
@@ -28,7 +29,7 @@ export default function Perfil() {
   const { profile, refreshProfile, signOut } = useAuth()
   const navigate = useNavigate()
 
-  const [activeTab, setActiveTab] = useState<'info' | 'seguridad' | 'sesiones'>('info')
+  const [activeTab, setActiveTab] = useState<'info' | 'seguridad' | 'sesiones' | 'tarjetas'>('info')
 
   const [nombre, setNombre] = useState(profile?.nombre ?? '')
   const [apellido, setApellido] = useState(profile?.apellido ?? '')
@@ -318,6 +319,19 @@ export default function Perfil() {
             >
               Sesiones
             </button>
+            {/* HU-PAGO-02 — Pestaña Tarjetas (solo residentes) */}
+            {profile.rol === 'residente' && (
+              <button
+                onClick={() => setActiveTab('tarjetas')}
+                className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === 'tarjetas'
+                    ? 'border-primary-600 text-primary-900'
+                    : 'border-transparent text-warm-500 hover:text-warm-700'
+                }`}
+              >
+                Tarjetas
+              </button>
+            )}
           </div>
 
           <div className="p-5 sm:p-6">
@@ -515,6 +529,11 @@ export default function Perfil() {
                   }
                 }}
               />
+            )}
+
+            {/* HU-PAGO-02 — Panel de tarjetas tokenizadas (solo residentes) */}
+            {activeTab === 'tarjetas' && profile.rol === 'residente' && (
+              <MisTarjetas />
             )}
           </div>
         </div>

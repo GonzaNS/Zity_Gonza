@@ -102,6 +102,58 @@ export function detectarMarca(primerosDig: string): TarjetaMarca {
   return 'otro'
 }
 
+/**
+ * HU-PAGO-02 — Algoritmo de Luhn (mod 10) para validar el número de tarjeta.
+ * Solo se llama desde el UI para validar ANTES de tokenizar; el PAN
+ * NO se envía al servidor ni se persiste.
+ *
+ * @param pan Número de tarjeta como string (puede contener espacios/guiones).
+ * @returns true si el número supera la comprobación de Luhn.
+ */
+export function luhnValido(pan: string): boolean {
+  const digitos = pan.replace(/\D/g, '')
+  if (digitos.length < 13 || digitos.length > 19) return false
+
+  let suma = 0
+  let doblar = false
+  for (let i = digitos.length - 1; i >= 0; i--) {
+    let d = parseInt(digitos[i]!, 10)
+    if (doblar) {
+      d *= 2
+      if (d > 9) d -= 9
+    }
+    suma += d
+    doblar = !doblar
+  }
+  return suma % 10 === 0
+}
+
+/**
+ * HU-PAGO-02 — Tokenización simulada del lado del frontend.
+ * En producción esta función NO existiría: el PAN nunca tocaría JS de la app;
+ * lo capturaría un iframe de la pasarela (Stripe Elements, Culqi, etc.).
+ *
+ * En SIMULACIÓN: genera un token opaco a partir del PAN, extrae los últimos
+ * 4 dígitos y DESCARTA el PAN. El token no es reversible al PAN.
+ *
+ * @param pan Número de tarjeta (solo dígitos). NUNCA se persiste.
+ * @returns { token, ultimos4 } — PAN descartado aquí, solo se usa para generar el token.
+ */
+export function tokenizarTarjeta(pan: string): { token: string; ultimos4: string } {
+  const digitos = pan.replace(/\D/g, '')
+  const ultimos4 = digitos.slice(-4)
+  // Token opaco: prefijo + hash simple no reversible (XOR rotativo de los dígitos)
+  // En producción esto sería un UUID devuelto por la pasarela.
+  const hash = digitos
+    .split('')
+    .reduce((acc, d, i) => acc ^ (parseInt(d, 10) << (i % 8)), 0)
+    .toString(16)
+    .padStart(8, '0')
+  const token = `tok_sim_${hash}_${Date.now().toString(36)}`
+  // digitos queda fuera del scope aquí → GC lo limpia
+  return { token, ultimos4 }
+}
+
 // ─── Operaciones de datos ─────────────────────────────────────────────────────
 
 /**
