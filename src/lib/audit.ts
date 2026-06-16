@@ -30,6 +30,8 @@ export type AccionAudit =
   | 'editar_perfil'
   // Sprint 6 · PBI-S5-E03 — cambio de contraseña (sin payload por OWASP A02)
   | 'cambio_contrasena'
+  // Sprint 13 · PBI-S6-E03 — gestión de sesiones activas
+  | 'cerrar_sesiones'
 
 /** Entidades sobre las que se audita desde el frontend authenticated. */
 export type EntidadAudit =
@@ -111,6 +113,7 @@ export const ACCIONES_AUDIT: ReadonlyArray<AccionAudit> = [
   'escalada_solicitud',
   'editar_perfil',
   'cambio_contrasena',
+  'cerrar_sesiones',
 ] as const
 
 /** Catálogo de entidades en runtime. Incluye también las que escriben las
