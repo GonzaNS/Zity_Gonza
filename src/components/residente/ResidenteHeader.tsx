@@ -47,6 +47,7 @@ export default function ResidenteHeader({ slot }: Props) {
           {slot}
 
           <NavLink to="/residente" end className={linkClass}>Inicio</NavLink>
+          <NavLink to="/residente/solicitudes" className={linkClass}>Solicitudes</NavLink>
           <NavLink to="/residente/facturas" className={linkClass}>Mis facturas</NavLink>
           <NavLink to="/residente/tienda" className={linkClass}>Tienda</NavLink>
           <NavLink
