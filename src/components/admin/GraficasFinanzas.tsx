@@ -24,6 +24,24 @@ interface GraficaIngresosTipoProps {
   loading?: boolean
 }
 
+// Tooltip del PieChart. Definido a nivel de módulo (no dentro del componente) para
+// no recrear el componente en cada render (react-hooks/static-components).
+interface IngresosTooltipProps {
+  active?: boolean
+  payload?: Array<{ payload: { nombreLabel: string; value: number } }>
+}
+
+const CustomTooltip = ({ active, payload }: IngresosTooltipProps) => {
+  const data = payload?.[0]?.payload
+  if (!active || !data) return null
+  return (
+    <div className="bg-white border border-warm-200 p-3 rounded shadow-lg text-sm">
+      <p className="font-semibold text-primary-900 mb-1">{data.nombreLabel}</p>
+      <p className="text-primary-700">{formatearMoneda(data.value)}</p>
+    </div>
+  )
+}
+
 export const GraficaIngresosTipo: React.FC<GraficaIngresosTipoProps> = ({ datos, loading }) => {
   if (loading) return null
 
@@ -40,19 +58,6 @@ export const GraficaIngresosTipo: React.FC<GraficaIngresosTipoProps> = ({ datos,
     ...d,
     nombreLabel: d.name.charAt(0).toUpperCase() + d.name.slice(1)
   }))
-
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload
-      return (
-        <div className="bg-white border border-warm-200 p-3 rounded shadow-lg text-sm">
-          <p className="font-semibold text-primary-900 mb-1">{data.nombreLabel}</p>
-          <p className="text-primary-700">{formatearMoneda(data.value)}</p>
-        </div>
-      )
-    }
-    return null
-  }
 
   return (
     <div className="h-full min-h-[220px]">

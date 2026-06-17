@@ -23,9 +23,9 @@ export function useMetricasTienda(periodo?: string) {
         setMetricas(data as MetricasTienda)
         setUltimaActualizacion(new Date().toISOString())
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error al cargar métricas de la tienda:', err)
-      setError(err.message || 'Error al cargar los datos de la tienda')
+      setError(err instanceof Error ? err.message : 'Error al cargar los datos de la tienda')
     } finally {
       setLoading(false)
     }

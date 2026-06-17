@@ -38,6 +38,7 @@ import {
   type MetodoPago,
   type TarjetaMarca,
 } from '../../lib/metodos-pago'
+import { useAuth } from '../../contexts/AuthContext'
 
 // ─── Props (sin cambios respecto al S10) ─────────────────────────────────────
 
@@ -56,6 +57,8 @@ const ANIO_ACTUAL = new Date().getFullYear()
 // ─── Componente ───────────────────────────────────────────────────────────────
 
 export default function ModalPagoSimulado({ factura, onClose, onPagado }: Props) {
+  const { profile } = useAuth()
+
   // ── Estado de carga de tarjetas ────────────────────────────────────────────
   const [tarjetas, setTarjetas] = useState<MetodoPago[]>([])
   const [cargandoTarjetas, setCargandoTarjetas] = useState(true)
@@ -140,11 +143,12 @@ export default function ModalPagoSimulado({ factura, onClose, onPagado }: Props)
 
     // Si el residente quiere guardar la nueva tarjeta, la tokenizamos ANTES de pagar.
     // CVV no participa en la tokenización ni en el guardado.
-    if (modo === 'nueva' && guardarTarjeta && alias.trim()) {
+    if (modo === 'nueva' && guardarTarjeta && alias.trim() && profile?.id) {
       const { token, ultimos4 } = tokenizarTarjeta(panRaw)
       const marca = detectarMarca(digitosPan)
       // Fire-and-forget: si falla el guardado no bloqueamos el pago
       void agregarMetodoPago({
+        residente_id:   profile.id,
         alias:          alias.trim() || `Mi ${LABEL_MARCA[marca]}`,
         marca,
         titular:        titular.trim(),

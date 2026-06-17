@@ -41,6 +41,8 @@ export type MetodoPago = {
  * de la pasarela y nunca llegan al código de la aplicación.
  */
 export type MetodoPagoInsert = {
+  /** Dueño de la tarjeta. Debe coincidir con auth.uid() — lo exige la RLS (WITH CHECK). */
+  residente_id: string
   alias: string
   marca: TarjetaMarca
   titular: string
@@ -193,6 +195,7 @@ export async function agregarMetodoPago(
   const { data, error } = await supabase
     .from('metodos_pago')
     .insert({
+      residente_id:   payload.residente_id,
       alias:          payload.alias.trim(),
       marca:          payload.marca,
       titular:        payload.titular.trim(),

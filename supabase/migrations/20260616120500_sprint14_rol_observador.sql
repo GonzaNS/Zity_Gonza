@@ -18,20 +18,23 @@
 --     que el admin después de esta migración.
 -- ============================================================
 
--- ─── 1. Extender el enum de rol ──────────────────────────────────────────────
+-- ─── 1. Extender la lista de roles válidos ───────────────────────────────────
+-- El rol NO es un enum en este esquema: usuarios.rol es text con un CHECK de
+-- lista cerrada (constraint usuarios_rol_check). Para admitir 'observador'
+-- se reemplaza ese CHECK añadiendo el nuevo valor permitido. La función
+-- helper get_user_rol() ya devuelve text, por lo que las comparaciones
+-- get_user_rol() = 'observador' funcionan sin cambios.
+ALTER TABLE public.usuarios DROP CONSTRAINT IF EXISTS usuarios_rol_check;
 
--- ADD VALUE es DDL no transaccional en PostgreSQL; debe ejecutarse fuera
--- de un bloque de transacción abierta. Supabase lo ejecuta como sentencia
--- independiente al aplicar la migración.
-ALTER TYPE public.rol_usuario ADD VALUE IF NOT EXISTS 'observador';
+ALTER TABLE public.usuarios
+  ADD CONSTRAINT usuarios_rol_check
+  CHECK (rol = ANY (ARRAY['residente'::text, 'admin'::text, 'tecnico'::text, 'observador'::text]));
 
-COMMENT ON TYPE public.rol_usuario IS
-  'Roles del sistema Zity. '
-  'admin: acceso operativo completo. '
-  'residente: acceso a su unidad y servicios. '
-  'tecnico: gestión de asignaciones propias. '
-  'observador (Sprint 14): solo lectura para panel ejecutivo. '
-  'NO añadir nuevos valores sin revisar todas las políticas RLS.';
+COMMENT ON CONSTRAINT usuarios_rol_check ON public.usuarios IS
+  'Roles válidos del sistema Zity: '
+  'admin (acceso operativo completo), residente (su unidad y servicios), '
+  'tecnico (asignaciones propias), observador (Sprint 14: solo lectura del '
+  'panel ejecutivo). NO añadir valores sin revisar todas las políticas RLS.';
 
 -- ─── 2. RLS de solo lectura sobre tablas operativas ──────────────────────────
 -- Nota: la mayoría de las tablas ya tienen RLS habilitada desde sprints

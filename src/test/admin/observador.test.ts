@@ -54,7 +54,7 @@ const mockFrom = vi.fn((_tabla: string): any => fluentBuilder)
 vi.mock('../../lib/supabase', () => ({
   supabase: {
     from: (tabla: string) => mockFrom(tabla),
-    rpc: (...args: any[]) => mockRpc(...args),
+    rpc: (...args: unknown[]) => mockRpc(...args),
   },
 }))
 

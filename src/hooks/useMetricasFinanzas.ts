@@ -23,9 +23,9 @@ export function useMetricasFinanzas(periodo?: string) {
         setMetricas(data as MetricasFinanzas)
         setUltimaActualizacion(new Date().toISOString())
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error al cargar métricas financieras:', err)
-      setError(err.message || 'Error al cargar los datos financieros')
+      setError(err instanceof Error ? err.message : 'Error al cargar los datos financieros')
     } finally {
       setLoading(false)
     }

@@ -75,6 +75,11 @@ export function useMetodosPago(): UseMetodosPagoResult {
 
   // ── Alta de tarjeta ───────────────────────────────────────────────────────────
   const agregarTarjeta = useCallback(async (form: FormTarjeta) => {
+    // 0. Debe haber sesión: la tarjeta se asocia al residente (RLS exige residente_id = auth.uid()).
+    if (!profile?.id) {
+      return { ok: false, error: 'Debes iniciar sesión para guardar una tarjeta.' }
+    }
+
     // 1. Validar con Luhn ANTES de tokenizar
     if (!luhnValido(form.pan)) {
       return { ok: false, error: 'Número de tarjeta inválido (Luhn).' }
@@ -91,6 +96,7 @@ export function useMetodosPago(): UseMetodosPagoResult {
     // 4. Persistir solo los datos tokenizados (sin PAN, sin CVV)
     setGuardando(true)
     const { data, error: insertErr } = await agregarMetodoPago({
+      residente_id:   profile.id,
       alias:          form.alias.trim(),
       marca,
       titular:        form.titular.trim(),

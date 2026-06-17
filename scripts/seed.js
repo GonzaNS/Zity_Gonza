@@ -44,6 +44,14 @@ const USERS = [
     password: 'Residente3!',
     metadata: { nombre: 'Julia', apellido: 'Romero', rol: 'residente', piso: '5', departamento: 'C', telefono: '+51 999 000 005' },
   },
+  // Sprint 14 · HU-EJEC-01 — Sra. Rosa Díaz, dueña del edificio con rol 'observador'
+  // (solo lectura del dashboard ejecutivo /admin/ejecutivo). Stakeholder del PRD
+  // que estrena su feature en el broche del curso.
+  {
+    email: 'rosa@zity-demo.com',
+    password: 'Observador1!',
+    metadata: { nombre: 'Rosa', apellido: 'Díaz', rol: 'observador', piso: '', departamento: '', telefono: '+51 999 000 006' },
+  },
 ]
 
 async function cleanDb() {

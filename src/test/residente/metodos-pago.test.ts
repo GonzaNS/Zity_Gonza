@@ -60,6 +60,7 @@ vi.mock('../../lib/supabase', () => ({
 
 function metodoBase(overrides: Partial<Record<string, unknown>> = {}) {
   return {
+    residente_id:   'res-uuid-001',
     alias:          'Mi Visa personal',
     marca:          'visa' as const,
     titular:        'Juan Pérez',

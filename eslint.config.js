@@ -20,10 +20,20 @@ export default defineConfig([
       globals: globals.browser,
     },
     rules: {
-      '@typescript-eslint/no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      // El prefijo `_` marca descartes intencionales (vars, args y destructuring de arrays).
+      '@typescript-eslint/no-unused-vars': ['error', {
+        varsIgnorePattern: '^[A-Z_]',
+        argsIgnorePattern: '^_',
+        destructuredArrayIgnorePattern: '^_',
+      }],
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
       // Permitimos console.warn / console.error pero no console.log en producción.
       'no-console': ['warn', { allow: ['warn', 'error'] }],
+      // eslint-plugin-react-hooks v7 incorpora reglas del React Compiler. El patrón de
+      // data-fetching (un useEffect que invoca un loader async el cual fija la bandera
+      // `loading` con setState) es idiomático y está cubierto por los tests, por lo que
+      // set-state-in-effect queda como advertencia y no bloquea el build.
+      'react-hooks/set-state-in-effect': 'warn',
     },
   },
   {
