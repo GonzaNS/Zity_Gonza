@@ -7,10 +7,13 @@ import Portal from '../Portal'
 import type { Notificacion, Rol, TipoNotificacion } from '../../types/database'
 
 // HU-NOTIF-01 — Vista de solicitudes por rol para abrir el detalle al hacer click.
+// Sprint 14 · HU-EJEC-01 — el observador no tiene vista propia de solicitudes;
+// se redirige al panel ejecutivo donde puede ver las métricas globales.
 const RUTA_SOLICITUDES: Record<Rol, string> = {
-  admin: '/admin/solicitudes',
-  residente: '/residente',
-  tecnico: '/tecnico',
+  admin:      '/admin/solicitudes',
+  residente:  '/residente',
+  tecnico:    '/tecnico',
+  observador: '/admin/ejecutivo',
 }
 
 function getIconForTipo(tipo: TipoNotificacion) {

@@ -161,6 +161,76 @@ export function GraficaTipoBarra({ datos, loading }: GraficaTipoBarraProps) {
   )
 }
 
+// ─── 1b. Gráfica de barras del volumen mensual de solicitudes resueltas (último trimestre) ──
+
+type GraficaVolumenResueltasProps = {
+  datos: DatoTendenciaMensual[]
+  loading: boolean
+}
+
+export function GraficaVolumenResueltas({ datos, loading }: GraficaVolumenResueltasProps) {
+  // Quedarse solo con el último trimestre (los últimos 3 meses)
+  const datosTrimester = datos.slice(-3).map(d => ({
+    ...d,
+    label: formatearMes(d.mes),
+    resueltas: d.resueltas ?? 0
+  }))
+
+  return (
+    <div className="bg-white border border-warm-200 rounded-xl p-5 sm:p-6">
+      <div className="mb-4">
+        <h2 className="text-base font-semibold text-primary-900">Volumen mensual de solicitudes resueltas</h2>
+        <p className="text-xs text-warm-400 mt-0.5">Historial del último trimestre</p>
+      </div>
+
+      {loading ? (
+        <SkeletonGrafica height={220} />
+      ) : datosTrimester.length === 0 ? (
+        <div className="flex items-center justify-center h-[220px] text-warm-400 text-sm">
+          Sin solicitudes resueltas en el último trimestre
+        </div>
+      ) : (
+        <ResponsiveContainer width="100%" height={220}>
+          <BarChart
+            data={datosTrimester}
+            margin={{ top: 8, right: 16, left: 0, bottom: 0 }}
+          >
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke={ZITY.warm200}
+            />
+            <XAxis
+              dataKey="label"
+              tick={{ fontSize: 11, fill: ZITY.textLight }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis
+              tick={{ fontSize: 11, fill: ZITY.textLight }}
+              axisLine={false}
+              tickLine={false}
+              allowDecimals={false}
+              width={30}
+            />
+            <Tooltip
+              content={(props) => (
+                <TooltipBase
+                  active={props.active}
+                  payload={props.payload as unknown as Parameters<typeof TooltipBase>[0]['payload']}
+                  label={props.label as string}
+                  formatValor={(v) => `${v} solicitud${v !== 1 ? 'es resueltas' : ' resuelta'}`}
+                />
+              )}
+              cursor={{ fill: ZITY.warm200, opacity: 0.4 }}
+            />
+            <Bar dataKey="resueltas" name="Resueltas" fill={ZITY.primary} radius={[4, 4, 0, 0]} maxBarSize={40} />
+          </BarChart>
+        </ResponsiveContainer>
+      )}
+    </div>
+  )
+}
+
 // ─── 2. Gráfica de líneas: tendencia mensual de tiempos ─────────────────────
 
 type GraficaTendenciaProps = {

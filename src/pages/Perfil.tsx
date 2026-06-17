@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
@@ -7,28 +7,31 @@ import zityLogo from '../assets/zity_logo.png'
 import PasswordInput from '../components/PasswordInput'
 import { logAuditAction } from '../lib/audit'
 import type { Rol } from '../types/database'
+import MisTarjetas from '../components/residente/MisTarjetas'
 
 const NOMBRE_MIN = 2
 const NOMBRE_MAX = 80
 const TELEFONO_MAX = 20
 
 const ROL_LABEL: Record<Rol, string> = {
-  residente: 'Residente',
-  tecnico: 'Técnico',
-  admin: 'Administrador',
+  residente:  'Residente',
+  tecnico:    'Técnico',
+  admin:      'Administrador',
+  observador: 'Observador',   // Sprint 14 · HU-EJEC-01
 }
 
 const ROL_BADGE_CLS: Record<Rol, string> = {
-  residente: 'bg-accent-500',
-  tecnico: 'bg-success',
-  admin: 'bg-primary-600',
+  residente:  'bg-accent-500',
+  tecnico:    'bg-success',
+  admin:      'bg-primary-600',
+  observador: 'bg-amber-500',  // Sprint 14 · HU-EJEC-01
 }
 
 export default function Perfil() {
   const { profile, refreshProfile, signOut } = useAuth()
   const navigate = useNavigate()
 
-  const [activeTab, setActiveTab] = useState<'info' | 'seguridad'>('info')
+  const [activeTab, setActiveTab] = useState<'info' | 'seguridad' | 'sesiones' | 'tarjetas'>('info')
 
   const [nombre, setNombre] = useState(profile?.nombre ?? '')
   const [apellido, setApellido] = useState(profile?.apellido ?? '')
@@ -43,6 +46,42 @@ export default function Perfil() {
   const [errorSeguridad, setErrorSeguridad] = useState<string | null>(null)
   
   const [toast, setToast] = useState<string | null>(null)
+
+  // ─── Estado de sesiones activas (PBI-S6-E03) ─────────────────────────────────
+  type SesionInfo = {
+    id: string
+    user_agent: string
+    created_at: string
+    ip_address: string | null
+    es_actual: boolean
+  }
+  const [sesiones, setSesiones] = useState<SesionInfo[]>([])
+  const [cargandoSesiones, setCargandoSesiones] = useState(false)
+  const [errSesiones, setErrSesiones] = useState<string | null>(null)
+  const [cerrandoOtras, setCerrandoOtras] = useState(false)
+
+  // Carga las sesiones activas desde el contexto de la sesión actual
+  // (Supabase JS client solo expone la sesión actual; listamos 1 sesión
+  // enriquecida con el user-agent del cliente + indicador "Esta sesión").
+  const cargarSesiones = useCallback(async () => {
+    setCargandoSesiones(true)
+    setErrSesiones(null)
+    const { data, error } = await supabase.auth.getSession()
+    if (error || !data.session) {
+      setErrSesiones('No se pudo obtener la información de sesión.')
+      setCargandoSesiones(false)
+      return
+    }
+    const s = data.session
+    setSesiones([{
+      id: s.access_token.slice(-8), // sufijo para identificar visualmente
+      user_agent: navigator.userAgent,
+      created_at: new Date(s.user.last_sign_in_at ?? Date.now()).toISOString(),
+      ip_address:  null, // no expuesto por el client SDK
+      es_actual: true,
+    }])
+    setCargandoSesiones(false)
+  }, [])
 
   // Rate Limiting + countdown visual en vivo (PBI-S5-E03)
   const [intentosFallidos, setIntentosFallidos] = useState(0)
@@ -187,6 +226,11 @@ export default function Perfil() {
         profile!.id,
       )
 
+      // PBI-S6-E03 — R3: cerrar automáticamente todas las demás sesiones
+      // al cambiar la contraseña (OWASP Session Management Best Practices).
+      // scope: 'others' invalida todos los refresh tokens salvo el actual.
+      await supabase.auth.signOut({ scope: 'others' })
+
       setIntentosFallidos(0)
       setCurrentPassword('')
       setNewPassword('')
@@ -266,6 +310,30 @@ export default function Perfil() {
             >
               Seguridad
             </button>
+            {/* PBI-S6-E03 — Pestaña Sesiones */}
+            <button
+              onClick={() => { setActiveTab('sesiones'); void cargarSesiones() }}
+              className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'sesiones'
+                  ? 'border-primary-600 text-primary-900'
+                  : 'border-transparent text-warm-500 hover:text-warm-700'
+              }`}
+            >
+              Sesiones
+            </button>
+            {/* HU-PAGO-02 — Pestaña Tarjetas (solo residentes) */}
+            {profile.rol === 'residente' && (
+              <button
+                onClick={() => setActiveTab('tarjetas')}
+                className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === 'tarjetas'
+                    ? 'border-primary-600 text-primary-900'
+                    : 'border-transparent text-warm-500 hover:text-warm-700'
+                }`}
+              >
+                Tarjetas
+              </button>
+            )}
           </div>
 
           <div className="p-5 sm:p-6">
@@ -439,6 +507,36 @@ export default function Perfil() {
                 )}
               </form>
             )}
+
+            {activeTab === 'sesiones' && (
+              <SesionePanel
+                sesiones={sesiones}
+                cargando={cargandoSesiones}
+                error={errSesiones}
+                cerrandoOtras={cerrandoOtras}
+                onCerrarOtras={async () => {
+                  setCerrandoOtras(true)
+                  const { error } = await supabase.auth.signOut({ scope: 'others' })
+                  setCerrandoOtras(false)
+                  if (error) {
+                    setErrSesiones(error.message)
+                  } else {
+                    void logAuditAction(
+                      { accion: 'cerrar_sesiones', entidad: 'usuarios', entidadId: profile!.id },
+                      profile!.id,
+                    )
+                    setToast('Otras sesiones cerradas correctamente.')
+                    setTimeout(() => setToast(null), 3500)
+                    void cargarSesiones()
+                  }
+                }}
+              />
+            )}
+
+            {/* HU-PAGO-02 — Panel de tarjetas tokenizadas (solo residentes) */}
+            {activeTab === 'tarjetas' && profile.rol === 'residente' && (
+              <MisTarjetas />
+            )}
           </div>
         </div>
 
@@ -460,6 +558,194 @@ function ReadonlyRow({ label, value }: { label: string; value: string }) {
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 py-1">
       <span className="text-xs sm:text-sm text-warm-400">{label}</span>
       <span className="text-sm font-medium text-primary-900 sm:text-right truncate">{value}</span>
+    </div>
+  )
+}
+
+// ─── SesionePanel ─────────────────────────────────────────────────────────────
+// PBI-S6-E03 — Pestaña de sesiones activas del perfil.
+// Muestra la sesión actual (única expuesta por el SDK de cliente Supabase)
+// y permite cerrar todas las demás sesiones en otros dispositivos.
+
+type SesionInfo = {
+  id: string
+  user_agent: string
+  created_at: string
+  ip_address: string | null
+  es_actual: boolean
+}
+
+function parseDispositivo(ua: string): { dispositivo: string; navegador: string } {
+  const ua_lower = ua.toLowerCase()
+
+  // Sistema operativo
+  let dispositivo = 'Escritorio'
+  if (/iphone/.test(ua_lower))         dispositivo = 'iPhone'
+  else if (/ipad/.test(ua_lower))      dispositivo = 'iPad'
+  else if (/android/.test(ua_lower))   dispositivo = ua_lower.includes('mobile') ? 'Android (Móvil)' : 'Android (Tablet)'
+  else if (/mac os x/.test(ua_lower))  dispositivo = 'Mac'
+  else if (/windows/.test(ua_lower))   dispositivo = 'Windows'
+  else if (/linux/.test(ua_lower))     dispositivo = 'Linux'
+
+  // Navegador
+  let navegador = 'Navegador desconocido'
+  if (/edg\//.test(ua_lower))          navegador = 'Edge'
+  else if (/opr\//.test(ua_lower))     navegador = 'Opera'
+  else if (/chrome\//.test(ua_lower))  navegador = 'Chrome'
+  else if (/firefox\//.test(ua_lower)) navegador = 'Firefox'
+  else if (/safari\//.test(ua_lower))  navegador = 'Safari'
+
+  return { dispositivo, navegador }
+}
+
+function formatearFechaSesion(iso: string): string {
+  try {
+    return new Date(iso).toLocaleString('es', {
+      day: 'numeric', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    })
+  } catch {
+    return iso
+  }
+}
+
+function SesionePanel({
+  sesiones,
+  cargando,
+  error,
+  cerrandoOtras,
+  onCerrarOtras,
+}: {
+  sesiones: SesionInfo[]
+  cargando: boolean
+  error: string | null
+  cerrandoOtras: boolean
+  onCerrarOtras: () => void
+}) {
+  return (
+    <div className="animate-fade-in space-y-6">
+      {/* Cabecera informativa */}
+      <div className="rounded-xl bg-primary-50 border border-primary-100 p-4 flex items-start gap-3">
+        <svg className="w-5 h-5 text-primary-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+        </svg>
+        <div>
+          <p className="text-sm font-medium text-primary-900">Sesiones activas</p>
+          <p className="text-xs text-primary-700 mt-0.5">
+            Gestiona los dispositivos con acceso a tu cuenta. Si reconoces actividad sospechosa, cierra las demás sesiones inmediatamente.
+          </p>
+        </div>
+      </div>
+
+      {/* Error */}
+      {error && (
+        <div className="p-3 rounded-lg bg-error/10 border border-error/20 text-error text-sm">
+          {error}
+        </div>
+      )}
+
+      {/* Skeleton */}
+      {cargando && (
+        <div className="animate-pulse space-y-3">
+          {[1].map(i => (
+            <div key={i} className="rounded-xl border border-warm-200 p-4 flex items-center gap-4">
+              <div className="w-10 h-10 rounded-full bg-warm-100 shrink-0" />
+              <div className="flex-1 space-y-2">
+                <div className="h-4 w-40 bg-warm-100 rounded" />
+                <div className="h-3 w-56 bg-warm-100 rounded" />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Lista de sesiones */}
+      {!cargando && sesiones.length === 0 && !error && (
+        <p className="text-sm text-warm-400 text-center py-4">
+          No hay información de sesiones disponible.
+        </p>
+      )}
+
+      {!cargando && sesiones.length > 0 && (
+        <ul className="space-y-3">
+          {sesiones.map(s => {
+            const { dispositivo, navegador } = parseDispositivo(s.user_agent)
+            return (
+              <li
+                key={s.id}
+                className="rounded-xl border border-warm-200 p-4 flex items-start gap-4"
+              >
+                {/* Icono dispositivo */}
+                <div className="w-10 h-10 rounded-full bg-primary-50 flex items-center justify-center shrink-0">
+                  {dispositivo.includes('iPhone') || dispositivo.includes('Android') || dispositivo.includes('iPad') ? (
+                    <svg className="w-5 h-5 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                  )}
+                </div>
+
+                {/* Detalles */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm font-semibold text-primary-900">
+                      {dispositivo} · {navegador}
+                    </p>
+                    {s.es_actual && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[0.6rem] font-semibold bg-primary-100 text-primary-700 border border-primary-200">
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary-500 animate-pulse" aria-hidden="true" />
+                        Esta sesión
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-warm-400 mt-0.5">
+                    Inicio: {formatearFechaSesion(s.created_at)}
+                  </p>
+                  <p className="text-[0.625rem] text-warm-300 mt-1 truncate" title={s.user_agent}>
+                    {s.user_agent}
+                  </p>
+                </div>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+
+      {/* Zona de acción */}
+      <div className="rounded-xl border border-warm-200 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-primary-900">Cerrar todas las demás sesiones</p>
+          <p className="text-xs text-warm-400 mt-0.5">
+            Invalida el acceso en todos los dispositivos excepto este. Tu sesión actual no se ve afectada.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onCerrarOtras}
+          disabled={cerrandoOtras}
+          className="h-10 px-4 rounded-lg bg-error text-white text-sm font-medium hover:bg-error/90 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shrink-0"
+        >
+          {cerrandoOtras ? (
+            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          ) : (
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+          )}
+          Cerrar las demás
+        </button>
+      </div>
+
+      {/* Nota sobre cambio de contraseña */}
+      <p className="text-xs text-warm-400 flex items-start gap-1.5">
+        <svg className="w-3.5 h-3.5 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        Al cambiar tu contraseña (pestaña Seguridad) se cierran automáticamente todas las demás sesiones.
+      </p>
     </div>
   )
 }

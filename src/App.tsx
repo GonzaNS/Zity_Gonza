@@ -27,11 +27,13 @@ const AdminFacturacion = lazy(() => import('./pages/admin/Facturacion')) // Spri
 const AdminTienda = lazy(() => import('./pages/admin/Tienda')) // Sprint 10 · HU-TIENDA-02
 const AdminPedidos = lazy(() => import('./pages/admin/Pedidos')) // Sprint 11 · HU-TIENDA-08
 const AdminAnuncios = lazy(() => import('./pages/admin/Anuncios')) // Sprint 12 · HU-ANUNCIO-02
+const Ejecutivo = lazy(() => import('./pages/admin/Ejecutivo'))     // Sprint 14 · HU-EJEC-01
 const ResidenteDashboard = lazy(() => import('./pages/ResidenteDashboard'))
 const ResidenteFacturas = lazy(() => import('./pages/residente/Facturas')) // Sprint 8 · HU-FACT-03
 const ResidenteTienda = lazy(() => import('./pages/residente/Tienda')) // Sprint 10 · HU-TIENDA-05
 const ResidenteHistorialPedidos = lazy(() => import('./pages/residente/HistorialPedidos')) // Sprint 11 · HU-TIENDA-07
 const ResidenteAnuncios = lazy(() => import('./pages/residente/Anuncios')) // Sprint 12 · HU-ANUNCIO-03
+const ResidenteSolicitudes = lazy(() => import('./pages/residente/Solicitudes')) // Sprint 13 · HU-HOME-01
 const TecnicoDashboard = lazy(() => import('./pages/TecnicoDashboard'))
 const Perfil = lazy(() => import('./pages/Perfil'))
 const Notificaciones = lazy(() => import('./pages/Notificaciones'))
@@ -129,9 +131,21 @@ export default function App() {
                 <AdminAnuncios />
               </ProtectedRoute>
             } />
+            {/* Sprint 14 · HU-EJEC-01 — Panel ejecutivo (admin + observador) */}
+            <Route path="/admin/ejecutivo" element={
+              <ProtectedRoute allowedRoles={['admin', 'observador']}>
+                <Ejecutivo />
+              </ProtectedRoute>
+            } />
             <Route path="/residente" element={
               <ProtectedRoute allowedRoles={['residente']}>
                 <ResidenteDashboard />
+              </ProtectedRoute>
+            } />
+            {/* Sprint 13 · HU-HOME-01 — Lista completa de solicitudes del residente */}
+            <Route path="/residente/solicitudes" element={
+              <ProtectedRoute allowedRoles={['residente']}>
+                <ResidenteSolicitudes />
               </ProtectedRoute>
             } />
             {/* Sprint 8 · HU-FACT-03 — Facturas del residente */}
@@ -164,14 +178,15 @@ export default function App() {
               </ProtectedRoute>
             } />
 
-            {/* Sprint 5 · PBI-S2-E03 — /perfil accesible para los 3 roles activos */}
+            {/* Sprint 5 · PBI-S2-E03 — /perfil accesible para todos los roles activos */}
+            {/* Sprint 14 · HU-EJEC-01 — añadido observador */}
             <Route path="/perfil" element={
-              <ProtectedRoute allowedRoles={['residente', 'tecnico', 'admin']}>
+              <ProtectedRoute allowedRoles={['residente', 'tecnico', 'admin', 'observador']}>
                 <Perfil />
               </ProtectedRoute>
             } />
             <Route path="/notificaciones" element={
-              <ProtectedRoute allowedRoles={['residente', 'tecnico', 'admin']}>
+              <ProtectedRoute allowedRoles={['residente', 'tecnico', 'admin', 'observador']}>
                 <Notificaciones />
               </ProtectedRoute>
             } />

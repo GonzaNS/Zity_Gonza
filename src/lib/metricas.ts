@@ -136,6 +136,7 @@ export type DatoTendenciaMensual = {
   mes: string
   avg_horas: number | null
   mediana_horas: number | null
+  resueltas?: number
 }
 
 /** Una categoría del top-5 con su total y porcentaje relativo. */
