@@ -17,6 +17,13 @@ export type Profile = {
   departamento: string
   estado_cuenta: EstadoCuenta
   empresa_tercero: string | null
+  /**
+   * Fix post Sprint 13/14 (PBI-S6-E03) — Si no es null, identifica la única
+   * sesión válida del usuario (auth.sessions.id == claim session_id del JWT).
+   * El cliente cierra cualquier sesión cuyo session_id difiera. Opcional hasta
+   * aplicar la migración 20260622120000_sprint14_cierre_sesiones_perceptible.
+   */
+  sesion_unica_id?: string | null
   created_at: string
   updated_at: string
 }

@@ -6,6 +6,7 @@ import { ROLE_ROUTES } from '../lib/routing'
 import zityLogo from '../assets/zity_logo.png'
 import PasswordInput from '../components/PasswordInput'
 import { logAuditAction } from '../lib/audit'
+import { pausarVerificacionSesion } from '../lib/sesionUnica'
 import type { Rol } from '../types/database'
 import MisTarjetas from '../components/residente/MisTarjetas'
 
@@ -190,6 +191,10 @@ export default function Perfil() {
 
     setGuardandoSeguridad(true)
     setErrorSeguridad(null)
+    // PBI-S6-E03 — Pausamos la verificación de sesión única: el re-login de abajo
+    // crea una sesión nueva y no queremos que el intervalo/foco la cierre antes
+    // de que la marquemos como la única válida.
+    pausarVerificacionSesion(true)
 
     try {
       // Re-auth silencioso
@@ -226,10 +231,15 @@ export default function Perfil() {
         profile!.id,
       )
 
-      // PBI-S6-E03 — R3: cerrar automáticamente todas las demás sesiones
-      // al cambiar la contraseña (OWASP Session Management Best Practices).
-      // scope: 'others' invalida todos los refresh tokens salvo el actual.
-      await supabase.auth.signOut({ scope: 'others' })
+      // PBI-S6-E03 — R3: cerrar automáticamente todas las demás sesiones al
+      // cambiar la contraseña (OWASP Session Management). La RPC marca ESTA
+      // sesión (la del re-login) como la única válida y revoca las demás. El
+      // cierre es perceptible: las otras sesiones se cierran al verificarse
+      // (carga/foco/intervalo), no al expirar el access token (~1 h). A
+      // diferencia del antiguo signOut({scope:'others'}), aquí SÍ propagamos el
+      // error en lugar de mostrar "éxito" silenciosamente.
+      const { error: cerrarError } = await supabase.rpc('cerrar_otras_sesiones')
+      if (cerrarError) throw cerrarError
 
       setIntentosFallidos(0)
       setCurrentPassword('')
@@ -241,6 +251,7 @@ export default function Perfil() {
       setErrorSeguridad((err as Error).message)
     } finally {
       setGuardandoSeguridad(false)
+      pausarVerificacionSesion(false)
     }
   }
 
@@ -516,7 +527,10 @@ export default function Perfil() {
                 cerrandoOtras={cerrandoOtras}
                 onCerrarOtras={async () => {
                   setCerrandoOtras(true)
-                  const { error } = await supabase.auth.signOut({ scope: 'others' })
+                  setErrSesiones(null)
+                  // PBI-S6-E03 — Marca esta sesión como única válida y revoca las
+                  // demás (perceptible vía verificación activa en cada cliente).
+                  const { error } = await supabase.rpc('cerrar_otras_sesiones')
                   setCerrandoOtras(false)
                   if (error) {
                     setErrSesiones(error.message)

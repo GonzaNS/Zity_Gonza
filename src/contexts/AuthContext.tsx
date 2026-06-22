@@ -1,6 +1,12 @@
 import { createContext, useContext, useEffect, useMemo, useState, useCallback, useRef } from 'react'
 import type { User, Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
+import {
+  sesionFueInvalidada,
+  marcaInvalidaSesion,
+  pausarVerificacionSesion,
+  estaVerificacionPausada,
+} from '../lib/sesionUnica'
 import type { Profile, SignUpMetadata, EstadoCuenta } from '../types/database'
 
 type AuthState = {
@@ -32,7 +38,7 @@ const AuthContext = createContext<AuthContextType | null>(null)
 
 const PROFILE_FETCH_TIMEOUT_MS = 6000
 const SIGN_IN_TIMEOUT_MS = 8000
-const PROFILE_COLUMNS = 'id, email, nombre, apellido, telefono, rol, piso, departamento, estado_cuenta, empresa_tercero, created_at, updated_at'
+const PROFILE_COLUMNS = 'id, email, nombre, apellido, telefono, rol, piso, departamento, estado_cuenta, empresa_tercero, sesion_unica_id, created_at, updated_at'
 
 const isDev = import.meta.env.DEV
 
@@ -161,6 +167,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const profile = await fetchProfileSafe(session.user.id)
         if (!mountedRef.current) return
 
+        // PBI-S6-E03 — Al cargar la app (INITIAL_SESSION) comprobamos si esta
+        // sesión fue invalidada por un "cerrar otras sesiones"/cambio de
+        // contraseña en otro dispositivo; de ser así la cerramos en vez de
+        // autenticar. Los logins frescos (SIGNED_IN) limpian la marca en signIn,
+        // y la verificación periódica/foco cubre las sesiones ya abiertas.
+        if (
+          event === 'INITIAL_SESSION' &&
+          profile &&
+          !estaVerificacionPausada() &&
+          marcaInvalidaSesion(profile.sesion_unica_id, session)
+        ) {
+          profileUserIdRef.current = null
+          void supabase.auth.signOut({ scope: 'local' })
+          return
+        }
+
         // Si el fetch falla pero teníamos un profile válido del mismo usuario,
         // mantenemos el anterior en lugar de tirar al login. Sólo un evento
         // SIGNED_OUT explícito o un cambio real de usuario debe limpiar el
@@ -189,6 +211,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
+  // PBI-S6-E03 — Verificación activa periódica + al recuperar el foco. Hace
+  // PERCEPTIBLE el cierre disparado desde otro dispositivo: en cuanto esta
+  // pestaña vuelve a estar visible (o cada 45 s) comprueba si su sesión fue
+  // invalidada y, de ser así, cierra la sesión local. Sin esto habría que
+  // esperar a que expire el access token (~1 h).
+  useEffect(() => {
+    const INTERVALO_MS = 45_000
+
+    async function verificar() {
+      const { data } = await supabase.auth.getSession()
+      const session = data.session
+      if (!session || !mountedRef.current) return
+      if (await sesionFueInvalidada(session)) {
+        if (!mountedRef.current) return
+        await supabase.auth.signOut({ scope: 'local' })
+      }
+    }
+
+    const interval = setInterval(() => { void verificar() }, INTERVALO_MS)
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void verificar()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('focus', onVisible)
+
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('focus', onVisible)
+    }
+  }, [])
+
   // signIn devuelve error si:
   // 1. Las credenciales son inválidas (Supabase responde con error)
   // 2. La cuenta está pendiente o bloqueada (validamos antes de dejar sesión activa)
@@ -204,49 +258,61 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = useCallback(async (email: string, password: string) => {
     type SignInResult = Awaited<ReturnType<typeof supabase.auth.signInWithPassword>>
 
-    const timeoutResult: { timedOut: true } = { timedOut: true }
-    const race = await Promise.race<SignInResult | { timedOut: true }>([
-      supabase.auth.signInWithPassword({ email, password }),
-      new Promise(resolve => setTimeout(() => resolve(timeoutResult), SIGN_IN_TIMEOUT_MS)),
-    ])
+    // PBI-S6-E03 — Pausamos la verificación de sesión única mientras se crea la
+    // sesión nueva, para que el intervalo/foco no la cierre por la marca que dejó
+    // un "cerrar otras sesiones" anterior. Tras autenticar limpiamos esa marca.
+    pausarVerificacionSesion(true)
+    try {
+      const timeoutResult: { timedOut: true } = { timedOut: true }
+      const race = await Promise.race<SignInResult | { timedOut: true }>([
+        supabase.auth.signInWithPassword({ email, password }),
+        new Promise(resolve => setTimeout(() => resolve(timeoutResult), SIGN_IN_TIMEOUT_MS)),
+      ])
 
-    if ('timedOut' in race) {
-      // Otra pestaña pudo haber resuelto la sesión por nosotros; el evento
-      // SIGNED_IN dispará en cuanto se sincronice el storage. No mostramos
-      // error: si en realidad falló, el usuario verá que sigue en /login y
-      // podrá reintentar.
+      if ('timedOut' in race) {
+        // Otra pestaña pudo haber resuelto la sesión por nosotros; el evento
+        // SIGNED_IN dispará en cuanto se sincronice el storage. No mostramos
+        // error: si en realidad falló, el usuario verá que sigue en /login y
+        // podrá reintentar.
+        return { error: null }
+      }
+
+      const { data, error } = race
+
+      if (error) {
+        if (error.message.includes('Email not confirmed')) {
+          return { error: 'Debes verificar tu correo electrónico antes de iniciar sesión.' }
+        }
+        if (error.message.includes('Invalid login credentials')) {
+          return { error: 'Credenciales incorrectas.' }
+        }
+        return { error: error.message }
+      }
+
+      if (!data.user) {
+        return { error: 'No pudimos iniciar sesión. Intenta de nuevo.' }
+      }
+
+      const profile = await fetchProfileSafe(data.user.id)
+
+      if (!profile) {
+        await supabase.auth.signOut({ scope: 'local' })
+        return { error: 'No pudimos cargar tu perfil. Contacta al administrador.' }
+      }
+
+      if (profile.estado_cuenta !== 'activo') {
+        await supabase.auth.signOut({ scope: 'local' })
+        return { error: ESTADO_CUENTA_MENSAJES[profile.estado_cuenta] }
+      }
+
+      // Login válido: esta sesión nueva es legítima; quitamos cualquier marca de
+      // sesión única previa para que no se auto-cierre al verificarse.
+      await supabase.rpc('limpiar_sesion_unica')
+
       return { error: null }
+    } finally {
+      pausarVerificacionSesion(false)
     }
-
-    const { data, error } = race
-
-    if (error) {
-      if (error.message.includes('Email not confirmed')) {
-        return { error: 'Debes verificar tu correo electrónico antes de iniciar sesión.' }
-      }
-      if (error.message.includes('Invalid login credentials')) {
-        return { error: 'Credenciales incorrectas.' }
-      }
-      return { error: error.message }
-    }
-
-    if (!data.user) {
-      return { error: 'No pudimos iniciar sesión. Intenta de nuevo.' }
-    }
-
-    const profile = await fetchProfileSafe(data.user.id)
-
-    if (!profile) {
-      await supabase.auth.signOut({ scope: 'local' })
-      return { error: 'No pudimos cargar tu perfil. Contacta al administrador.' }
-    }
-
-    if (profile.estado_cuenta !== 'activo') {
-      await supabase.auth.signOut({ scope: 'local' })
-      return { error: ESTADO_CUENTA_MENSAJES[profile.estado_cuenta] }
-    }
-
-    return { error: null }
   }, [])
 
   const signUp = useCallback(async (email: string, password: string, metadata: SignUpMetadata) => {

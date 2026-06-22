@@ -7,12 +7,12 @@
 //   • Facturas emitidas (default): totales del periodo + filtros + tabla + drawer.
 //   • Emitir nueva: formulario individual / lote (Sprint 8).
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import AdminShell from '../../components/admin/AdminShell'
 import { supabase } from '../../lib/supabase'
 import { useResidentesActivos } from '../../hooks/useResidentesActivos'
-import { useFacturasAdmin, type FacturaAdmin } from '../../hooks/useFacturasAdmin'
+import { useFacturasAdmin, ADMIN_FACTURAS_LIMIT, type FacturaAdmin } from '../../hooks/useFacturasAdmin'
 import type { FiltroFactura, FiltroTipoFactura } from '../../hooks/useFacturasResidente'
 import TarjetaTotales from '../../components/admin/facturacion/TarjetaTotales'
 import TablaFacturasAdmin from '../../components/admin/facturacion/TablaFacturasAdmin'
@@ -114,14 +114,38 @@ export default function AdminFacturacion() {
 
 // ─── Panel: listado de facturas emitidas + totales + pago ─────────────────────
 
+/** Facturas por página en el listado del admin (paginación en cliente). */
+const POR_PAGINA = 10
+
 function PanelListado() {
   const [filtro, setFiltro] = useState<FiltroFactura>('todas')
   const [filtroTipo, setFiltroTipo] = useState<FiltroTipoFactura>('todas')
   const [periodo, setPeriodo] = useState<string>(periodoActual())
+  const [busqueda, setBusqueda] = useState('')
+  const [pagina, setPagina] = useState(1)
   const [seleccionada, setSeleccionada] = useState<FacturaAdmin | null>(null)
   const [toast, setToast] = useState<Toast>(null)
 
   const { facturas, totales, loading, error, recargar } = useFacturasAdmin(filtro, periodo, filtroTipo)
+
+  // Búsqueda en cliente por residente (nombre/apellido/depto/piso) o N° de factura.
+  const facturasFiltradas = useMemo(() => {
+    const q = busqueda.trim().toLowerCase()
+    if (!q) return facturas
+    return facturas.filter(f => {
+      const r = f.residente
+      const texto = [r?.nombre, r?.apellido, r?.departamento, r?.piso, f.numero]
+        .filter(Boolean).join(' ').toLowerCase()
+      return texto.includes(q)
+    })
+  }, [facturas, busqueda])
+
+  const totalPaginas = Math.max(1, Math.ceil(facturasFiltradas.length / POR_PAGINA))
+  const paginaSegura = Math.min(pagina, totalPaginas)
+  const facturasPagina = useMemo(
+    () => facturasFiltradas.slice((paginaSegura - 1) * POR_PAGINA, paginaSegura * POR_PAGINA),
+    [facturasFiltradas, paginaSegura],
+  )
 
   function mostrarToast(tipo: 'success' | 'error', msg: string) {
     setToast({ tipo, msg })
@@ -135,9 +159,36 @@ function PanelListado() {
     recargar()
   }
 
+  const desde = (paginaSegura - 1) * POR_PAGINA
+  const limiteAlcanzado = facturas.length >= ADMIN_FACTURAS_LIMIT
+
   return (
     <>
-      <TarjetaTotales totales={totales} periodo={periodo} onPeriodoChange={setPeriodo} loading={loading} />
+      <TarjetaTotales totales={totales} periodo={periodo} onPeriodoChange={p => { setPeriodo(p); setPagina(1) }} loading={loading} />
+
+      {/* Toolbar: búsqueda + contador */}
+      <div className="flex items-center gap-3 mb-3 animate-fade-in">
+        <div className="relative flex-1 min-w-0">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-warm-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+          </svg>
+          <input
+            type="search"
+            value={busqueda}
+            onChange={e => { setBusqueda(e.target.value); setPagina(1) }}
+            placeholder="Buscar por residente o N° de factura…"
+            aria-label="Buscar facturas"
+            className="w-full h-10 pl-9 pr-3 rounded-lg border border-warm-200 text-sm text-primary-900 placeholder:text-warm-400 bg-white focus:outline-none focus:ring-2 focus:ring-primary-400"
+          />
+        </div>
+        {!loading && (
+          <span className="text-sm text-warm-500 shrink-0 tabular-nums">
+            {facturasFiltradas.length === facturas.length
+              ? `${facturas.length} factura${facturas.length !== 1 ? 's' : ''}`
+              : `${facturasFiltradas.length} de ${facturas.length}`}
+          </span>
+        )}
+      </div>
 
       {/* Filtros por estado + tipo */}
       <div className="flex items-center gap-1.5 flex-wrap mb-5 animate-fade-in">
@@ -145,7 +196,7 @@ function PanelListado() {
           <button
             key={f.valor}
             type="button"
-            onClick={() => setFiltro(f.valor)}
+            onClick={() => { setFiltro(f.valor); setPagina(1) }}
             className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all cursor-pointer border ${
               filtro === f.valor
                 ? 'bg-primary-600 text-white border-primary-600'
@@ -160,7 +211,7 @@ function PanelListado() {
 
         <select
           value={filtroTipo}
-          onChange={e => setFiltroTipo(e.target.value as FiltroTipoFactura)}
+          onChange={e => { setFiltroTipo(e.target.value as FiltroTipoFactura); setPagina(1) }}
           aria-label="Filtrar por tipo de factura"
           className="h-9 px-3 rounded-full text-sm font-medium text-primary-700 bg-white border border-warm-200 focus:outline-none focus:ring-2 focus:ring-primary-400 cursor-pointer"
         >
@@ -187,8 +238,58 @@ function PanelListado() {
               : 'No hay facturas con ese estado.'}
           </p>
         </div>
+      ) : facturasFiltradas.length === 0 ? (
+        <div className="bg-white border border-warm-200 rounded-xl p-10 text-center animate-fade-in">
+          <p className="font-medium text-primary-900">Sin resultados</p>
+          <p className="text-sm text-warm-400 mt-1">
+            No se encontraron facturas para «{busqueda.trim()}».
+          </p>
+        </div>
       ) : (
-        <TablaFacturasAdmin facturas={facturas} onSeleccionar={setSeleccionada} />
+        <>
+          <TablaFacturasAdmin facturas={facturasPagina} onSeleccionar={setSeleccionada} />
+
+          {/* Paginación + aviso de límite */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-4">
+            <p className="text-xs text-warm-400 tabular-nums order-2 sm:order-1">
+              Mostrando {desde + 1}–{Math.min(desde + POR_PAGINA, facturasFiltradas.length)} de {facturasFiltradas.length}
+              {limiteAlcanzado && (
+                <span className="block sm:inline sm:ml-2 text-warm-400">
+                  · se cargan las {ADMIN_FACTURAS_LIMIT} más recientes; acota por periodo o filtros para ver el resto.
+                </span>
+              )}
+            </p>
+            {totalPaginas > 1 && (
+              <div className="flex items-center gap-1 shrink-0 order-1 sm:order-2 self-end sm:self-auto">
+                <button
+                  type="button"
+                  onClick={() => setPagina(p => Math.max(1, p - 1))}
+                  disabled={paginaSegura <= 1}
+                  aria-label="Página anterior"
+                  className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-warm-200 text-primary-700 bg-white hover:border-primary-300 hover:text-primary-900 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <span className="text-sm text-warm-500 tabular-nums px-2 min-w-[4.5rem] text-center">
+                  {paginaSegura} / {totalPaginas}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))}
+                  disabled={paginaSegura >= totalPaginas}
+                  aria-label="Página siguiente"
+                  className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-warm-200 text-primary-700 bg-white hover:border-primary-300 hover:text-primary-900 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+            )}
+          </div>
+        </>
       )}
 
       {seleccionada && (
