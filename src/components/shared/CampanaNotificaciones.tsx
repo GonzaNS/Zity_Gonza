@@ -113,8 +113,9 @@ export default function CampanaNotificaciones() {
 
   // HU-NOTIF-01 (accesibilidad) — cerrar con click fuera y con la tecla Escape.
   // Como el panel vive en un Portal, el "click fuera" excluye tanto el panel
-  // (menuRef) como el botón (btnRef). Cerramos también en scroll/resize para que
-  // el panel anclado al viewport no quede desalineado.
+  // (menuRef) como el botón (btnRef). Cerramos también en resize y en el scroll
+  // de la página/sidebar de fondo para que el panel anclado al viewport (fixed)
+  // no quede desalineado.
   useEffect(() => {
     if (!isOpen) return
     function handleClickOutside(e: MouseEvent) {
@@ -125,16 +126,24 @@ export default function CampanaNotificaciones() {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') setIsOpen(false)
     }
-    function cerrar() { setIsOpen(false) }
+    function cerrarEnResize() { setIsOpen(false) }
+    // El listener de scroll está en fase de captura para detectar el scroll de
+    // cualquier contenedor de fondo (el evento scroll no burbujea). Pero eso
+    // también captura el scroll de la lista interna del propio panel, que NO
+    // debe cerrarlo: lo excluimos igual que handleClickOutside excluye sus clicks.
+    function cerrarEnScroll(e: Event) {
+      if (menuRef.current?.contains(e.target as Node)) return
+      setIsOpen(false)
+    }
     document.addEventListener('mousedown', handleClickOutside)
     document.addEventListener('keydown', handleKeyDown)
-    window.addEventListener('resize', cerrar)
-    window.addEventListener('scroll', cerrar, true)
+    window.addEventListener('resize', cerrarEnResize)
+    window.addEventListener('scroll', cerrarEnScroll, true)
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
       document.removeEventListener('keydown', handleKeyDown)
-      window.removeEventListener('resize', cerrar)
-      window.removeEventListener('scroll', cerrar, true)
+      window.removeEventListener('resize', cerrarEnResize)
+      window.removeEventListener('scroll', cerrarEnScroll, true)
     }
   }, [isOpen])
 
